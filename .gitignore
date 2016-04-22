@@ -1,0 +1,5 @@
+.idea/
+*.json
+*.fnt
+node_modules/
+out_0.png
