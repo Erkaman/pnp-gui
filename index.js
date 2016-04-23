@@ -40,11 +40,7 @@ uniform sampler2D uFontAtlas;
 
 void main() {
   vec4 sample = texture2D(uFontAtlas, vUv);
-  //sample.xyz = vec3(1.0, 1.0, 1.0);
- // sample.x = 1.0;
   gl_FragColor = vec4(vColor.xyz * sample.xyz, sample.x );
- // gl_FragColor = vec4(vUv, 0.0, 1.0 );
-  
 }
 `
 
@@ -62,6 +58,9 @@ function GUI(gl) {
 
     // the vertical spacing between the widgets.
     this.widgetSpacing = 11;
+
+    // the horizontal and vertical spacing between the button border and its text label.
+    this.buttonSpacing = 3;
 
 
     this.windowPosition = [050,50]
@@ -136,12 +135,50 @@ GUI.prototype._addUv = function(uv) {
     this.uvBuffer[this.uvBufferIndex++] = uv[1];
 }
 
+/*
+Get text width and height.
+ */
+GUI.prototype._getTextSizes = function(str) {
+
+
+    var width = 0;
+    var height = 0; // the height of the highest character.
+
+
+    /*
+     var x0 = (x + cd.xoff)*this.textScale ;
+     var y0 = (y + cd.yoff)*this.textScale;
+     var x1 = (x + cd.xoff2)*this.textScale;
+     var y1 = (y + cd.yoff2)*this.textScale;
+
+     */
+    for(var i = 0; i < str.length; ++i) {
+        var ch = str[i];
+        var cd = this._getCharDesc(ch);
+
+        width += (cd.xadvance) * this.textScale;
+
+
+        var y0 = (cd.yoff)*this.textScale;
+        var y1 = (cd.yoff2)*this.textScale;
+        var h = y1-y0;
+
+        if( height < h ) {
+            height = h;
+        }
+
+    }
+
+    return {width: width, height: height};
+
+
+}
 
 
 /*
 render text
  */
-GUI.prototype._text = function(position, str, spacing) {
+GUI.prototype._text = function(position, str) {
 
     var x = position[0];
     var y = position[1];
@@ -149,26 +186,17 @@ GUI.prototype._text = function(position, str, spacing) {
     var ipw = 1.0 / 256;
     var iph = 1.0 / 256;
 
-  //  console.log("base", this.textBase);
-
-  //  y += this.textScale * this.textBase;
-
-
-
     for(var i = 0; i < str.length; ++i) {
 
         var ch = str[i];
 
         // char desc
         var cd = this._getCharDesc(ch);
-        
+
         var x0 = (x + cd.xoff)*this.textScale ;
         var y0 = (y + cd.yoff)*this.textScale;
         var x1 = (x + cd.xoff2)*this.textScale;
         var y1 = (y + cd.yoff2)*this.textScale;
-
-        console.log("y ",  x,   x + cd.xoff2, x1  );
-
 
 
         var s0 = (cd.x0 * ipw);
@@ -264,12 +292,28 @@ GUI.prototype._box = function(position, size, color) {
 
 }
 
-GUI.prototype.button = function() {
+GUI.prototype.button = function(str) {
 
     var buttonPosition = this.windowCaret;
 
-    this._box(this.windowCaret, [100,50], [1.0, 0.0, 0.0]  )
-    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + 50 + this.widgetSpacing]
+    var textSizes = this._getTextSizes(str);
+
+    // button size is text size, plus the spacing around the text.
+    var buttonSizes = {
+        width: textSizes.width + this.buttonSpacing * 2,
+        height: textSizes.height + this.buttonSpacing * 2
+    };
+
+    this._box(
+        buttonPosition  ,
+        [buttonSizes.width, buttonSizes.height], [1.0, 0.0, 0.0]  )
+
+    // Render button text.
+    this._text([buttonPosition[0] + this.buttonSpacing,
+        buttonPosition[1] + buttonSizes.height - this.buttonSpacing  ], str);
+
+    // move down window caret.
+    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + buttonSizes.height ]
 }
 
 
@@ -291,23 +335,10 @@ GUI.prototype.begin = function(){
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
 
-
-    this.button()
-
-    this.button()
-
-    this.button()
-
-
-//   this._text([100,100] , "eric arneback Eric Arneback ERIC ARNEBACK", 0);
-
-   // console.log("lol");
-    this._text(this.windowPosition , "Button NUM_SAMPLES", 0);
-
-    // this.addBox(vec2.fromValues(000,100), vec2.fromValues(100,100), [1.0, 1.0, 0.0]  )
-
-   // this.addBox(vec2.fromValues(000,200), vec2.fromValues(100,100), [1.0, 1.0, 1.0]  )
-
+    this.button("Eric Arneback");
+    this.button("Button");
+    this.button("Lorem Ipsum");
+    this.button("NUM_SAMPLES");
 }
 
 GUI.prototype.end = function(canvasWidth, canvasHeight){
