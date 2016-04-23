@@ -30,7 +30,7 @@ function GUI(gl) {
     this.sliderLabelSpacing = 4;
 
     this.windowPosition = [20, 20];
-    this.windowSize = [250, 400];
+    this.windowSizes = [250, 400];
     this.windowColor = [0.1, 0.1, 0.1];
 
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
@@ -43,6 +43,7 @@ function GUI(gl) {
 GUI.prototype._getCharDesc = function (char) {
     return fontInfo.chars[char.charCodeAt(0) - 32];
 }
+
 
 /*
  PRIVATE
@@ -273,10 +274,11 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
     var sliderPosition = this.windowCaret;
 
-    // if we use the height of a single digit, we know that the slider will always be high enough.
+    // * if we use the height of a single digit, we know that the slider will always be high enough.
     // (since all digits have equal height in our font).
+    // * also, we dynamically determine the slider width, based on the window width.
     var sliderSizes = [
-        100,
+        (this.windowSizes[0] - 2* this.windowSpacing)*0.6,
         this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
     ];
 
@@ -332,7 +334,6 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
     var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
-
 
     this._newline(sliderSizes[1]);
 }
@@ -403,7 +404,7 @@ GUI.prototype.begin = function (io) {
 
 
     // render window.
-    this._box(this.windowPosition, this.windowSize, this.windowColor)
+    this._box(this.windowPosition, this.windowSizes, this.windowColor)
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
