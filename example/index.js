@@ -37,7 +37,6 @@ shell.on("gl-render", function(t) {
     prev = pressed;
 
     gui.begin(io);
-
     
     if(gui.button("Eric Arneback")) {
         console.log("button");

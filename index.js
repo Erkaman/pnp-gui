@@ -22,9 +22,11 @@ function GUI(gl) {
 
     // the horizontal and vertical spacing between the button border and its text label.
     this.buttonSpacing = 3;
+    this.buttonColor =  [0.6, 0.0, 0.0];
 
-    this.windowPosition = [50, 50]
-    this.windowSize = [200, 400]
+    this.windowPosition = [50, 50];
+    this.windowSize = [200, 400];
+    this.windowColor = [0.25, 0.25, 0.25];
 
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
     this.fontAtlasTexture.magFilter = gl.LINEAR;
@@ -243,7 +245,7 @@ GUI.prototype.button = function (str) {
 
     this._box(
         buttonPosition,
-        buttonSizes, [1.0, 0.0, 0.0])
+        buttonSizes, this.buttonColor)
 
     // Render button text.
     this._text([buttonPosition[0] + this.buttonSpacing,
@@ -291,7 +293,7 @@ GUI.prototype.begin = function (io) {
 
 
     // render window.
-    this._box(this.windowPosition, this.windowSize, [0.3, 0.3, 0.3])
+    this._box(this.windowPosition, this.windowSize, this.windowColor)
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
