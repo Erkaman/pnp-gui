@@ -26,9 +26,11 @@ function GUI(gl) {
 
     // the vertical space between the number and the border of the slider box.
     this.sliderVerticalSpacing = 4;
+    // the horizontal space between the slider and its label.
+    this.sliderLabelSpacing = 4;
 
-    this.windowPosition = [50, 50];
-    this.windowSize = [200, 400];
+    this.windowPosition = [20, 20];
+    this.windowSize = [250, 400];
     this.windowColor = [0.1, 0.1, 0.1];
 
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
@@ -263,7 +265,7 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
 }
 
 
-GUI.prototype._slider = function (str, value, min, max, doRounding) {
+GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
     /*
     SLIDER IO
@@ -308,7 +310,7 @@ GUI.prototype._slider = function (str, value, min, max, doRounding) {
     var sliderFill = (value.val - min) / (max - min);
 
     var sliderValueStr =  value.val.toFixed(2)  ;
-    
+
     this._box(
         sliderPosition,
         sliderSizes, [0.0 ,0.0, 0.0]);
@@ -323,9 +325,13 @@ GUI.prototype._slider = function (str, value, min, max, doRounding) {
     var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
 
 
+    // render text in slider
     this._textCenter(sliderPosition, sliderSizes, sliderValueStr);
 
-
+    // now render slider label.
+    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
+    var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
+    this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
 
     this._newline(sliderSizes[1]);
