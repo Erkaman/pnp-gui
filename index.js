@@ -35,6 +35,13 @@ function GUI(gl) {
     this.windowSizes = [250, 400];
     this.windowColor = [0.1, 0.1, 0.1];
 
+
+    this.titleBarHeight = 21;
+    // spacing between the title bars border, and the window title.
+    this.titleBarVerticalSpacing = 6;
+    this.titleBarColor = [0.2, 0.4, 0.7];
+
+
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
     this.fontAtlasTexture.magFilter = gl.LINEAR;
     this.fontAtlasTexture.minFilter = gl.LINEAR;
@@ -398,8 +405,45 @@ GUI.prototype.button = function (str) {
     return false;
 }
 
+GUI.prototype._window = function (io) {
 
-GUI.prototype.begin = function (io) {
+    /*
+    this.titleBarHeight = 30;
+    this.titleBarColor = [0.0, 0.0, 0.8];
+*/
+
+
+    // draw title bar
+    this._box([this.windowPosition[0], this.windowPosition[1]], [this.windowSizes[0],  this.titleBarHeight],
+        this.titleBarColor);
+
+    // draw title bar text
+    /*var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
+    var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
+    */
+
+
+    this._textCenter(
+        [this.windowPosition[0]+this.titleBarVerticalSpacing, this.windowPosition[1]],
+        [this._getTextSizes(this.windowTitle)[0],   this.titleBarHeight ],
+        this.windowTitle);
+
+
+
+    this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes, this.windowColor);
+
+    // setup the window-caret. The window-caret is where we will place the next widget in the window.
+    this.windowCaret = [
+        this.windowPosition[0] + this.windowSpacing,
+        this.windowPosition[1] + this.windowSpacing + this.titleBarHeight]
+
+
+}
+
+
+GUI.prototype.begin = function (io, windowTitle) {
+
+    this.windowTitle = windowTitle;
 
     this.indexBuffer = [];
     this.positionBuffer = [];
@@ -416,10 +460,8 @@ GUI.prototype.begin = function (io) {
 
 
     // render window.
-    this._box(this.windowPosition, this.windowSizes, this.windowColor)
+    this._window();
 
-    // setup the window-caret. The window-caret is where we will place the next widget in the window.
-    this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
 
 }
 
