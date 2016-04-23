@@ -23,6 +23,8 @@ function GUI(gl) {
     // the horizontal and vertical spacing between the button border and its text label.
     this.buttonSpacing = 3;
     this.buttonColor =  [0.5, 0.1, 0.1];
+    this.hoverButtonColor = [0.6, 0.1, 0.1];
+    this.clickButtonColor =  [0.8, 0.1, 0.1];
 
     // the vertical space between the number and the border of the slider box.
     this.sliderVerticalSpacing = 4;
@@ -355,9 +357,23 @@ GUI.prototype.button = function (str) {
         textSizes[1] + this.buttonSpacing * 2
     ];
 
+    //is mouse hovering over button?
+    var isHover = inBox(buttonPosition, buttonSizes, this.io.mousePosition);
+    var isButtonClick = this.io.mouseLeftPressed && isHover;
+
+    var color;
+
+    if(isButtonClick) {
+        color = this.clickButtonColor;
+    } else if(isHover) {
+        color = this.hoverButtonColor;
+    } else {
+        color =  this.buttonColor
+    }
+
     this._box(
         buttonPosition,
-        buttonSizes, this.buttonColor)
+        buttonSizes, color)
 
     // Render button text.
     this._text([buttonPosition[0] + this.buttonSpacing,
@@ -375,12 +391,8 @@ GUI.prototype.button = function (str) {
      */
 
 
-    if(this.io.mouseLeftPressed) {
-        // check if mouse pressed this button:
-
-        if(inBox(buttonPosition, buttonSizes, this.io.mousePosition) ) {
-            return true; // button press!
-        }
+    if(isButtonClick){
+         return true; // button press!
     }
 
     return false;
