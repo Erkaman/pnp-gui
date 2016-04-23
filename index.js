@@ -8,9 +8,6 @@ var fontAtlas= require("./font_atlas.js")
 var createTexture = require('gl-texture2d')
 
 
-const VIRTUAL_WIDTH  = 2000;
-const VIRTUAL_HEIGHT = 1300;
-
 
 
 const vert = `
@@ -67,8 +64,8 @@ function GUI(gl) {
     this.widgetSpacing = 11;
 
 
-    this.windowPosition = [000,100]
-    this.windowSize = [300,1000]
+    this.windowPosition = [050,50]
+    this.windowSize = [200,400]
 
    // console.log("font info", fontInfo.chars[2] )
   //  console.log("font atlas", typeof(fontAtlas) )
@@ -82,7 +79,7 @@ function GUI(gl) {
 
     //this._getCharDesc("@");
 
-    this.textScale = 2.0;
+    this.textScale = 1.0;
     /*
     this.textBase = fontInfo.common.base;
     this.textScaleW = fontInfo.common.scaleW;
@@ -164,27 +161,7 @@ GUI.prototype._text = function(position, str, spacing) {
 
         // char desc
         var cd = this._getCharDesc(ch);
-
-       // console.log("e", cd );
-
-        /*
-        // Map the center of the texel to the corners
-        // in order to get pixel perfect mapping
-        var u = ((cd.x)+0.5) / this.textScaleW;
-        var v = ((cd.y)+0.5) / this.textScaleH;
-        var u2 = u + (cd.width) / this.textScaleW;
-        var v2 = v + (cd.height) / this.textScaleH;
-
-        var a = this.textScale * (cd.xadvance);
-        var w = this.textScale * (cd.width);
-        var h = this.textScale * (cd.height);
-        var ox = this.textScale * (cd.xoffset);
-        var oy = this.textScale * (cd.yoffset);
-       // oy = 0;
-        */
-
-
-
+        
         var x0 = (x + cd.xoff)*this.textScale ;
         var y0 = (y + cd.yoff)*this.textScale;
         var x1 = (x + cd.xoff2)*this.textScale;
@@ -199,15 +176,7 @@ GUI.prototype._text = function(position, str, spacing) {
         var s1 = (cd.x1 * ipw);
         var t1 = (cd.y1 * iph);
 
-        x += (cd.xadvance);
-
-
-
-
-
-
-        //console.log("cd.yoffset", cd.yoffset);
-
+        x += (cd.xadvance)*this.textScale;
 
         var baseIndex = this.positionBufferIndex / 2;
 
@@ -248,15 +217,6 @@ GUI.prototype._text = function(position, str, spacing) {
         this._addIndex(baseIndex+1);
         this._addIndex(baseIndex+2);
         this._addIndex(baseIndex+3);
-
-
-
-       // x += a;
-        /*
-        if( ch == " " )
-            x += spacing;
-*/
-
     }
 }
 
@@ -304,50 +264,12 @@ GUI.prototype._box = function(position, size, color) {
 
 }
 
-GUI.prototype._createVirtualToScreenMatrix = function(out, canvasWidth, canvasHeight) {
-    var widthScale = canvasWidth / VIRTUAL_WIDTH;
-    var heightScale = canvasHeight / VIRTUAL_HEIGHT;
-
-    var scale = 0;
-    var xOffset = 0;
-    var yOffset = 0;
-    if(widthScale < heightScale){
-        scale = widthScale;
-        yOffset = (canvasHeight - VIRTUAL_HEIGHT * scale) / 2;
-        xOffset = 0;
-    } else {
-        scale = heightScale;
-        xOffset = (canvasWidth - VIRTUAL_WIDTH * scale) / 2;
-        yOffset = 0;
-    }
-
-
-    out[0] = scale;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-    out[4] = 0;
-    out[5] = scale;
-    out[6] = 0;
-    out[7] = 0;
-    out[8] = 0;
-    out[9] = 0;
-    out[10] = 0;
-    out[11] = 0;
-    out[12] = xOffset;
-    out[13] = yOffset;
-    out[14] = 0;
-    out[15] = 1;
-
-    return out;
-}
-
 GUI.prototype.button = function() {
 
     var buttonPosition = this.windowCaret;
 
-    this._box(this.windowCaret, [200,200], [1.0, 0.0, 0.0]  )
-    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + 200 + this.widgetSpacing]
+    this._box(this.windowCaret, [100,50], [1.0, 0.0, 0.0]  )
+    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + 50 + this.widgetSpacing]
 }
 
 
@@ -380,7 +302,7 @@ GUI.prototype.begin = function(){
 //   this._text([100,100] , "eric arneback Eric Arneback ERIC ARNEBACK", 0);
 
    // console.log("lol");
-    this._text([0,100] , "eric arneback Eric Arneback ERIC ARNEBACK", 0);
+    this._text(this.windowPosition , "Button NUM_SAMPLES", 0);
 
     // this.addBox(vec2.fromValues(000,100), vec2.fromValues(100,100), [1.0, 1.0, 0.0]  )
 
@@ -407,9 +329,6 @@ GUI.prototype.end = function(canvasWidth, canvasHeight){
 
     var virtualToScreenMatrix = mat4.create()
 
-    this._createVirtualToScreenMatrix(virtualToScreenMatrix, canvasWidth, canvasHeight)
-
-    mat4.multiply(projection, projection, virtualToScreenMatrix)
 
     this.shader.uniforms.uProj = projection;
 
