@@ -89,7 +89,7 @@ GUI.prototype._getTextSizes = function (str) {
 
     }
 
-    return {width: width, height: height};
+    return [ width, height];
 }
 
 
@@ -204,32 +204,77 @@ GUI.prototype._box = function (position, size, color) {
 
 }
 
+/*
+Given a box with position `p`, width `s[0]`, height `[1]`,
+return whether the point with the position `x` is inside the box.
+ */
+function inBox(p, s, x) {
+    var minX = p[0];
+    var minY = p[1];
+
+    var maxX = p[0] + s[0];
+    var maxY = p[1] + s[1];
+
+
+    //console.log(minX, maxX, minY, maxY, x, y)
+
+
+    return (
+        minX <= x[0] && x[0] <= maxX &&
+        minY <= x[1] && x[1] <= maxY
+    );
+}
+
 GUI.prototype.button = function (str) {
+
+    /*
+    BUTTON RENDERING
+     */
 
     var buttonPosition = this.windowCaret;
 
     var textSizes = this._getTextSizes(str);
 
     // button size is text size, plus the spacing around the text.
-    var buttonSizes = {
-        width: textSizes.width + this.buttonSpacing * 2,
-        height: textSizes.height + this.buttonSpacing * 2
-    };
+    var buttonSizes = [
+        textSizes[0] + this.buttonSpacing * 2,
+        textSizes[1] + this.buttonSpacing * 2
+    ];
 
     this._box(
         buttonPosition,
-        [buttonSizes.width, buttonSizes.height], [1.0, 0.0, 0.0])
+        buttonSizes, [1.0, 0.0, 0.0])
 
     // Render button text.
     this._text([buttonPosition[0] + this.buttonSpacing,
-        buttonPosition[1] + buttonSizes.height - this.buttonSpacing], str);
+        buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
 
     // move down window caret.
-    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + buttonSizes.height]
+    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + buttonSizes[1]]
+
+
+
+    /*
+    BUTTON IO
+    If button is pressed, return true;
+    Otherwise, return false.
+     */
+
+
+    if(this.io.mouseLeftPressed) {
+        // check if mouse pressed this button:
+
+        if(inBox(buttonPosition, buttonSizes, this.io.mousePosition) ) {
+            return true; // button press!
+        }
+
+    }
+
+    return false;
 }
 
 
-GUI.prototype.begin = function () {
+GUI.prototype.begin = function (io) {
 
     this.indexBuffer = [];
     this.positionBuffer = [];
@@ -241,16 +286,16 @@ GUI.prototype.begin = function () {
     this.colorBufferIndex = 0;
     this.uvBufferIndex = 0;
 
+
+    this.io = io;
+
+
     // render window.
     this._box(this.windowPosition, this.windowSize, [0.3, 0.3, 0.3])
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
 
-    this.button("Eric Arneback");
-    this.button("Button");
-    this.button("Lorem Ipsum");
-    this.button("NUM_SAMPLES");
 }
 
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {

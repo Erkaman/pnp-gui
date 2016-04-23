@@ -18,6 +18,8 @@ shell.on("gl-init", function() {
     gui = new createGui(gl)
 })
 
+var prev = false;
+
 shell.on("gl-render", function(t) {
 
 
@@ -28,9 +30,24 @@ shell.on("gl-render", function(t) {
     gl.clearColor(0.0, 0.6, 0.7, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    gui.begin();
+    var pressed = shell.wasDown("mouse-left");
 
+    var io = {mouseLeftPressed: !pressed && prev, mousePosition:[shell.mouseX, shell.mouseY] }
 
+    prev = pressed;
+
+    gui.begin(io);
+
+    
+    if(gui.button("Eric Arneback")) {
+        console.log("button");
+    }
+
+    /*
+    gui.button("Button");
+    gui.button("Lorem Ipsum");
+    gui.button("NUM_SAMPLES");
+*/
     gui.end(gl,  canvas.width, canvas.height);
 
 
