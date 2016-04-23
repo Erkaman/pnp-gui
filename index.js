@@ -22,11 +22,14 @@ function GUI(gl) {
 
     // the horizontal and vertical spacing between the button border and its text label.
     this.buttonSpacing = 3;
-    this.buttonColor =  [0.6, 0.0, 0.0];
+    this.buttonColor =  [0.5, 0.1, 0.1];
+
+    // the vertical space between the number and the border of the slider box.
+    this.sliderVerticalSpacing = 4;
 
     this.windowPosition = [50, 50];
     this.windowSize = [200, 400];
-    this.windowColor = [0.25, 0.25, 0.25];
+    this.windowColor = [0.1, 0.1, 0.1];
 
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
     this.fontAtlasTexture.magFilter = gl.LINEAR;
@@ -165,8 +168,23 @@ GUI.prototype._text = function (position, str) {
 
         // finally, advance the x-coord, in preparation of rendering the next character.
         x += (cd.xadvance) * this.textScale;
-
     }
+}
+
+/*
+Render text centered in a box with position `p`, width `s[0]`, height `[1]`,
+ */
+GUI.prototype._textCenter = function (p, s, str) {
+    var strSizes = this._getTextSizes(str);
+
+    // we must round, otherwise the text may end up between pixels(say at 1.5, or 1.6, or something ),
+    // and this makes it blurry
+    var strPosition = [
+        Math.round(0.5 * (p[0] + (p[0]+s[0]) - strSizes[0] )),
+        Math.round(0.5 * (p[1] + (p[1]+s[1]) + strSizes[1] )),
+    ];
+
+    this._text(strPosition, str);
 }
 
 /*
@@ -227,6 +245,93 @@ function inBox(p, s, x) {
     );
 }
 
+
+/*
+After adding a widget of height `widgetHeight`, move the caret down a line.
+ */
+GUI.prototype._newline = function (widgetHeight) {
+    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + widgetHeight]
+
+}
+
+GUI.prototype.sliderFloat = function (str, value, min, max) {
+    this._slider(str, value, min, max, false);
+}
+
+GUI.prototype.sliderInt = function (str, value, min, max) {
+    this._slider(str, value, min, max, true);
+}
+
+
+GUI.prototype._slider = function (str, value, min, max, doRounding) {
+
+    /*
+    SLIDER IO
+     */
+
+    var sliderPosition = this.windowCaret;
+
+    // if we use the height of a single digit, we know that the slider will always be high enough.
+    // (since all digits have equal height in our font).
+    var sliderSizes = [
+        100,
+        this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
+    ];
+
+    if(this.io.mouseLeftDown) {
+
+        if(inBox(sliderPosition, sliderSizes, this.io.mousePosition) ) {
+            // if the mouse is clicking on the slider, we modify `value.val` based
+            // on the x-position of the mouse.
+
+            var xMax = sliderPosition[0] + sliderSizes[0];
+            var xMin = sliderPosition[0];
+
+            value.val = (max - min) * ((this.io.mousePosition[0] - xMin) / (xMax - xMin)) + min;
+
+            if(doRounding)
+                value.val = Math.round(value.val);
+
+        }
+    }
+
+
+
+    /*
+     SLIDER RENDERING
+     */
+
+    /*
+    Compute slider fill. Measures how much of the slider is filled.
+    In range [0,1]
+     */
+    var sliderFill = (value.val - min) / (max - min);
+
+    var sliderValueStr =  value.val.toFixed(2)  ;
+    
+    this._box(
+        sliderPosition,
+        sliderSizes, [0.0 ,0.0, 0.0]);
+
+    /*
+    Now fill the slider based on `sliderFill`
+     */
+    this._box(
+        sliderPosition,
+        [sliderSizes[0]*sliderFill,sliderSizes[1]  ], [0.0 ,0.3, 0.7]);
+
+    var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
+
+
+    this._textCenter(sliderPosition, sliderSizes, sliderValueStr);
+
+
+
+
+    this._newline(sliderSizes[1]);
+}
+
+
 GUI.prototype.button = function (str) {
 
     /*
@@ -252,8 +357,8 @@ GUI.prototype.button = function (str) {
         buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
 
     // move down window caret.
-    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + buttonSizes[1]]
 
+    this._newline(buttonSizes[1]);
 
 
     /*
@@ -269,7 +374,6 @@ GUI.prototype.button = function (str) {
         if(inBox(buttonPosition, buttonSizes, this.io.mousePosition) ) {
             return true; // button press!
         }
-
     }
 
     return false;

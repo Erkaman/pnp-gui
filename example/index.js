@@ -19,6 +19,8 @@ shell.on("gl-init", function() {
 })
 
 var prev = false;
+var intValue = {val: 5 };
+var floatValue = {val: 5.54 };
 
 shell.on("gl-render", function(t) {
 
@@ -32,7 +34,11 @@ shell.on("gl-render", function(t) {
 
     var pressed = shell.wasDown("mouse-left");
 
-    var io = {mouseLeftPressed: !pressed && prev, mousePosition:[shell.mouseX, shell.mouseY] }
+    var io = {
+        mouseLeftPressed: !pressed && prev,
+        mouseLeftDown: pressed,
+
+        mousePosition:[shell.mouseX, shell.mouseY] }
 
     prev = pressed;
 
@@ -42,11 +48,18 @@ shell.on("gl-render", function(t) {
         console.log("button");
     }
 
-    /*
+
     gui.button("Button");
     gui.button("Lorem Ipsum");
     gui.button("NUM_SAMPLES");
-*/
+    gui.button("1234567890.012");
+
+
+    gui.sliderInt("NUM_SAMPLES", intValue, 2, 13);
+    gui.sliderFloat("density", floatValue, 3, 19);
+
+    gui.button("1234567890.012");
+
     gui.end(gl,  canvas.width, canvas.height);
 
 
