@@ -44,7 +44,8 @@ uniform sampler2D uFontAtlas;
 void main() {
   vec4 sample = texture2D(uFontAtlas, vUv);
   //sample.xyz = vec3(1.0, 1.0, 1.0);
-  gl_FragColor = vec4(/*vColor.xyz */ sample.xyz, sample.x );
+ // sample.x = 1.0;
+  gl_FragColor = vec4(vColor.xyz * sample.xyz, sample.x );
  // gl_FragColor = vec4(vUv, 0.0, 1.0 );
   
 }
@@ -54,7 +55,7 @@ void main() {
 Constructor
  */
 function GUI(gl) {
-    console.log("CREATE")
+    //console.log("CREATE")
 
     this.allGuiGeometry = createGeometry(gl)
     this.shader = createShader(gl, vert, frag)
@@ -74,21 +75,32 @@ function GUI(gl) {
 
     this.fontAtlasTexture = createTexture(gl, fontAtlas)
 
+  //  this.fontAtlasTexture.generateMipmap();
+    this.fontAtlasTexture.magFilter = gl.LINEAR;
+    this.fontAtlasTexture.minFilter = gl.LINEAR;
+
+
     //this._getCharDesc("@");
 
     this.textScale = 2.0;
+    /*
     this.textBase = fontInfo.common.base;
     this.textScaleW = fontInfo.common.scaleW;
     this.textScaleH= fontInfo.common.scaleH;
     this.textFontHeight= fontInfo.common.lineHeight;
-
+*/
    // console.log( this.textBase)
 
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
+    //gl.disable(gl.CULL_FACE)
 
-    gl.disable(gl.CULL_FACE)
+
+    console.log("A", this._getCharDesc("A"));
+
+    console.log("n", this._getCharDesc("n"));
+
 
 
 }
@@ -137,7 +149,14 @@ GUI.prototype._text = function(position, str, spacing) {
     var x = position[0];
     var y = position[1];
 
-    y += this.textScale * this.textBase;
+    var ipw = 1.0 / 256;
+    var iph = 1.0 / 256;
+
+  //  console.log("base", this.textBase);
+
+  //  y += this.textScale * this.textBase;
+
+
 
     for(var i = 0; i < str.length; ++i) {
 
@@ -146,6 +165,9 @@ GUI.prototype._text = function(position, str, spacing) {
         // char desc
         var cd = this._getCharDesc(ch);
 
+       // console.log("e", cd );
+
+        /*
         // Map the center of the texel to the corners
         // in order to get pixel perfect mapping
         var u = ((cd.x)+0.5) / this.textScaleW;
@@ -158,41 +180,62 @@ GUI.prototype._text = function(position, str, spacing) {
         var h = this.textScale * (cd.height);
         var ox = this.textScale * (cd.xoffset);
         var oy = this.textScale * (cd.yoffset);
+       // oy = 0;
+        */
 
-      //  console.log("bla ",cd.width,  this.textScaleW, u + (cd.width) / this.textScaleW );
 
 
-       // console.log("tp bl tr br:", [x+ox, y-h-oy], [x+ox, y-oy], [x+w+ox, y-h-oy],  [x+w+ox, y-oy] );
+        var x0 = (x + cd.xoff)*this.textScale ;
+        var y0 = (y + cd.yoff)*this.textScale;
+        var x1 = (x + cd.xoff2)*this.textScale;
+        var y1 = (y + cd.yoff2)*this.textScale;
+
+        console.log("y ",  x,   x + cd.xoff2, x1  );
+
+
+
+        var s0 = (cd.x0 * ipw);
+        var t0 = (cd.y0 * iph);
+        var s1 = (cd.x1 * ipw);
+        var t1 = (cd.y1 * iph);
+
+        x += (cd.xadvance);
+
+
+
+
+
+
+        //console.log("cd.yoffset", cd.yoffset);
 
 
         var baseIndex = this.positionBufferIndex / 2;
 
-    //    console.log("tl br tr br", [u, v], [u, v2], [u2, v], [u2, v2])
 
         var whiteColor = [1,1,1]
 
         // top left
-        this._addPosition([x+ox, y-h-oy]);
+        this._addPosition([x0, y0]);
         this._addColor(whiteColor);
-        this._addUv([u, v]);
+        this._addUv([s0, t0]);
 
 
         // bottom left
-        this._addPosition([x+ox, y-oy]);
+        this._addPosition([x0, y1]);
         this._addColor(whiteColor);
-        this._addUv([u, v2]);
+        this._addUv([s0, t1]);
 
 
         // top right
-        this._addPosition([x+w+ox, y-h-oy]);
+        this._addPosition([x1, y0]);
         this._addColor(whiteColor);
-        this._addUv([u2, v]);
+        this._addUv([s1, t0]);
 
 
         // bottom right
-        this._addPosition([x+w+ox, y-oy]);
+        this._addPosition([x1, y1]);
         this._addColor(whiteColor);
-        this._addUv([u2, v2]);
+        this._addUv([s1, t1]);
 
 
         // console.log("array",  this.positionBufferIndex / 2 );
@@ -206,27 +249,13 @@ GUI.prototype._text = function(position, str, spacing) {
         this._addIndex(baseIndex+2);
         this._addIndex(baseIndex+3);
 
-/*
-        render->VtxColor(color);
-        render->VtxData(ch->chnl);
-        render->VtxTexCoord(u, v);
-        render->VtxPos(x+ox, y-oy, z);
-        render->VtxTexCoord(u2, v);
-        render->VtxPos(x+w+ox, y-oy, z);
-        render->VtxTexCoord(u2, v2);
-        render->VtxPos(x+w+ox, y-h-oy, z);
-        render->VtxTexCoord(u, v2);
-        render->VtxPos(x+ox, y-h-oy, z);
-        */
 
-        x += a;
+
+       // x += a;
+        /*
         if( ch == " " )
             x += spacing;
-
-        /*
-        if( n < count )
-            x += AdjustForKerningPairs(charId, GetTextChar(text,n));
-        */
+*/
 
     }
 }
@@ -244,23 +273,23 @@ GUI.prototype._box = function(position, size, color) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
-    var whiteUv = [0,0]
+    var whiteUv = [0.95,0.95]
 
     this._addPosition(tl);
     this._addColor(color);
-    this._addUv([0,0]);
+    this._addUv(whiteUv);
 
     this._addPosition(bl);
     this._addColor(color);
-    this._addUv([0,0]);
+    this._addUv(whiteUv);
 
     this._addPosition(tr);
     this._addColor(color);
-    this._addUv([0,0]);
+    this._addUv(whiteUv);
 
     this._addPosition(br);
     this._addColor(color);
-    this._addUv([0,0]);
+    this._addUv(whiteUv);
 
    // console.log("array",  this.positionBufferIndex / 2 );
 
@@ -335,21 +364,23 @@ GUI.prototype.begin = function(){
     this.uvBufferIndex = 0;
 
     // render window.
-  //  this._box(this.windowPosition, this.windowSize, [0.3, 0.3, 0.3]  )
+    this._box(this.windowPosition, this.windowSize, [0.3, 0.3, 0.3]  )
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [this.windowPosition[0] + this.windowSpacing, this.windowPosition[1] + this.windowSpacing]
 
-/*
-    this.button()
 
     this.button()
 
     this.button()
-*/
 
-   this._text([100,100] , "Eric Arneback", 0);
+    this.button()
 
+
+//   this._text([100,100] , "eric arneback Eric Arneback ERIC ARNEBACK", 0);
+
+   // console.log("lol");
+    this._text([0,100] , "eric arneback Eric Arneback ERIC ARNEBACK", 0);
 
     // this.addBox(vec2.fromValues(000,100), vec2.fromValues(100,100), [1.0, 1.0, 0.0]  )
 
@@ -394,20 +425,3 @@ GUI.prototype.end = function(canvasWidth, canvasHeight){
 
 
 module.exports = GUI;
-
-
-/*
-if( token == "lineHeight" )
-    fontHeight = (short)strtol(value.c_str(), 0, 10);
-else if( token == "base" )
-    base = (short)strtol(value.c_str(), 0, 10);
-else if( token == "scaleW" )
-    scaleW = (short)strtol(value.c_str(), 0, 10);
-else if( token == "scaleH" )
-    scaleH = (short)strtol(value.c_str(), 0, 10);
-else if( token == "pages" )
-    pages = strtol(value.c_str(), 0, 10);
-else if( token == "packed" )
-    packed = strtol(value.c_str(), 0, 10);
-
-    */
