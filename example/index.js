@@ -31,7 +31,7 @@ shell.on("gl-render", function(t) {
     gui.begin();
 
 
-    gui.end( canvas.width, canvas.height);
+    gui.end(gl,  canvas.width, canvas.height);
 
 
 

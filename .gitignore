@@ -3,3 +3,5 @@
 *.fnt
 node_modules/
 out_0.png
+font_bitmap.png
+out_pretty.js
