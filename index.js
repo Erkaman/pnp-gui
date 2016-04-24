@@ -71,8 +71,14 @@ function GUI(gl) {
     this.checkboxInnerColorHover = [0.20 ,0.20, 0.20];
 
 
+    this.radioButtonOuterColor = [0.3 ,0.3, 0.3];
+    this.radioButtonInnerColor = [0.15 ,0.15, 0.15];
+    this.radioButtonOuterColorHover = [0.35 ,0.35, 0.35];
+    this.radioButtonInnerColorHover = [0.20 ,0.20, 0.20];
+
+
     this.windowPosition = [20, 20];
-    this.windowSizes = [360, 400];
+    this.windowSizes = [360, 500];
     this.windowColor = [0.1, 0.1, 0.1];
 
 
@@ -255,6 +261,18 @@ GUI.prototype._textCenter = function (p, s, str) {
 }
 
 /*
+Add vertex that only has one color, and does not use a texture.
+ */
+GUI.prototype._coloredVertex = function (position, color) {
+
+    // at this uv-coordinate, the font atlas is entirely white.
+    var whiteUv = [0.95, 0.95];
+
+    this._addPosition(position);this._addColor(color);this._addUv(whiteUv);
+
+}
+
+/*
  PRIVATE
  */
 GUI.prototype._box = function (position, size, color) {
@@ -267,20 +285,17 @@ GUI.prototype._box = function (position, size, color) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
-    // at this uv-coordinate, the font atlas is entirely white.
-    var whiteUv = [0.95, 0.95]
-
     // vertex 1
-    this._addPosition(tl);this._addColor(color);this._addUv(whiteUv);
+    this._coloredVertex(tl, color);
 
     // vertex 2
-    this._addPosition(bl);this._addColor(color);this._addUv(whiteUv);
+    this._coloredVertex(bl, color);
 
     // vertex 3
-    this._addPosition(tr);this._addColor(color);this._addUv(whiteUv);
+    this._coloredVertex(tr, color);
 
     // vertex 4
-    this._addPosition(br);this._addColor(color);this._addUv(whiteUv);
+    this._coloredVertex(br, color);
 
 
     // triangle 1
@@ -292,10 +307,69 @@ GUI.prototype._box = function (position, size, color) {
 }
 
 /*
+ */
+GUI.prototype._unitCircle = function (position, theta, radius) {
+    return [position[0] + radius * Math.cos(theta), position[1] + radius * Math.sin(theta)];
+}
+
+
+/*
+Render a circle, where the top-left corner of the circle is `position`
+Where `segments` is how many triangle segments the triangle is rendered by.
+ */
+GUI.prototype._circle = function (position, sizes, color, segments) {
+
+    var centerPosition = [
+        position[0] + 0.5 * sizes[0],
+        position[1] + 0.5 * sizes[1]
+    ];
+    var radius = sizes[0] / 2;
+
+    var baseIndex = this.positionBufferIndex / 2;
+
+    // center vertex.
+    this._coloredVertex(centerPosition, color);
+    var centerVertexIndex = baseIndex + 0;
+
+
+    var stepSize = (2*Math.PI) / segments;
+    var curIndex = baseIndex + 1;
+    for(var theta = 0; theta <= 2*Math.PI+0.1; theta+=stepSize, ++curIndex) {
+
+        // for first frame, we only create one vertex, and no triangles
+        if(theta ==0) {
+            var p = this._unitCircle(centerPosition, theta, radius);
+            this._coloredVertex(p, color);
+        } else {
+            var p = this._unitCircle(centerPosition, theta, radius);
+            this._coloredVertex(p, color);
+
+            this._addIndex(centerVertexIndex);this._addIndex(curIndex-1);this._addIndex(curIndex+0);
+        }
+    }
+}
+
+/*
 Given a box with position `p`, width `s[0]`, height `[1]`,
 return whether the point with the position `x` is inside the box.
  */
-function inBox(p, s, x) {
+function _inCircle(p, s, x) {
+
+    // circle center
+    var cp = [
+        p[0] + 0.5 * s[0],
+        p[1] + 0.5 * s[1]
+
+    ];
+    var radius = s[0] * 0.5;
+
+    // distance from `x` to circle center.
+    var dist = Math.sqrt( (x[0]-cp[0])*(x[0]-cp[0]) + (x[1]-cp[1])*(x[1]-cp[1]));
+
+    return (dist <= radius);
+}
+
+function _inBox(p, s, x) {
     var minX = p[0];
     var minY = p[1];
 
@@ -359,7 +433,7 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, c
     ];
 
 
-    var mouseCollision = inBox(draggerPosition, draggerSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
     if (
         mouseCollision &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
@@ -484,7 +558,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
         this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
     ];
 
-    var mouseCollision = inBox(sliderPosition, sliderSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(sliderPosition, sliderSizes, this.io.mousePosition);
 
     if (
         mouseCollision &&
@@ -561,6 +635,69 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
 }
 
+/*
+If value.val == id, then that means this radio button is chosen.
+ */
+GUI.prototype.radioButton= function (labelStr, value, id) {
+
+    this._moveWindowCaret();
+
+    /*
+     Radio button IO
+     */
+
+
+    var zeroHeight = this._getTextSizes("0")[1];
+
+    var innerRadius = (zeroHeight + 2 * 1) / 2;
+    var outerRadius = (zeroHeight + 2 * 4) / 2;
+
+    var radioButtonPosition = this.windowCaret;
+
+    console.log("caret", this.windowCaret);
+
+    var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
+
+    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
+
+
+     if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
+         value.val = id;
+     }
+
+    var isHover = mouseCollision;
+
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    this._circle(radioButtonPosition, radioButtonSizes,
+        isHover ? this.radioButtonOuterColorHover : this.radioButtonOuterColor, 16);
+
+
+    if (value.val == id) {
+        var p = radioButtonPosition;
+        var s = radioButtonSizes;
+        var innerCirclePosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerRadius * 2 )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerRadius * 2 )),
+        ];
+
+        this._circle(innerCirclePosition, [innerRadius * 2, innerRadius * 2],
+            isHover ? this.radioButtonInnerColorHover : this.radioButtonInnerColor, 16);
+    }
+
+    
+    // now render radio button label.
+    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelSpacing, radioButtonPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0],  radioButtonSizes[1]  ];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+    this.prevWidgetSizes = [radioButtonSizes[0] + labelStrSizes[0], radioButtonSizes[1]  ];
+}
+
+
 
 
 GUI.prototype.checkbox= function (labelStr, value) {
@@ -581,7 +718,7 @@ GUI.prototype.checkbox= function (labelStr, value) {
     var checkboxPosition = this.windowCaret;
     var checkboxSizes = [outerSize, outerSize];
 
-    var mouseCollision = inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
 
     if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
         value.val = !value.val;
@@ -649,7 +786,7 @@ GUI.prototype.button = function (str) {
     var isButtonClick = false;
 
     // we can only hover or click, when are not interacting with some other widget.
-    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
+    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
 
         if(this.io.mouseLeftDownPrev  && !this.io.mouseLeftDownCur ) {
 
@@ -726,7 +863,7 @@ GUI.prototype._window = function () {
     var titleBarSizes =  [this.windowSizes[0],  this.titleBarHeight];
 
     if (
-        inBox(titleBarPosition, titleBarSizes, this.io.mousePosition) &&
+        _inBox(titleBarPosition, titleBarSizes, this.io.mousePosition) &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
         // activate window when clicked.
         this.activeWidgetId = widgetId;
@@ -734,7 +871,7 @@ GUI.prototype._window = function () {
 
     if (this.activeWidgetId == widgetId) {
 
-        if(inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
+        if(_inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
             // if mouse in title bar, just use the mouse position delta to adjust the window pos.
 
             this.windowPosition = [

@@ -26,6 +26,8 @@ var boolValue2 = {val: false };
 var boolValue3 = {val: true };
 var boolValue4 = {val: false };
 var bg = [0.6, 0.7, 1.0];
+var radioButtonValue = {val: 1};
+var radioButtonValue2 = {val: 0};
 
 shell.on("gl-render", function(t) {
 
@@ -92,6 +94,17 @@ shell.on("gl-render", function(t) {
     gui.button("lol");
     gui.textLine("Another one");
 
+
+    gui.radioButton("a", radioButtonValue, 0);
+    gui.sameLine();
+    gui.radioButton("b", radioButtonValue, 1);
+    gui.sameLine();
+    gui.radioButton("c", radioButtonValue, 2);
+
+
+    gui.radioButton("x", radioButtonValue2, 0);
+    gui.radioButton("y", radioButtonValue2, 1);
+     gui.radioButton("z", radioButtonValue2, 2);
 
 
     gui.end(gl,  canvas.width, canvas.height);
