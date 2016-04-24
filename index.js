@@ -461,9 +461,61 @@ GUI.prototype.button = function (str) {
 
 GUI.prototype._window = function () {
 
+    var widgetId = hashString( this.windowTitle);
+
+    /*
+    WINDOW IO(move window when dragging the title-bar using the left mouse button)
+     */
+
+    var titleBarPosition = this.windowPosition;
+    var titleBarSizes =  [this.windowSizes[0],  this.titleBarHeight];
+
+    if (
+        inBox(titleBarPosition, titleBarSizes, this.io.mousePosition) &&
+        this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
+        // activate window when clicked.
+        this.activeWidgetId = widgetId;
+    }
+
+    if (this.activeWidgetId == widgetId) {
+
+        if(inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
+            // if mouse in title bar, just use the mouse position delta to adjust the window pos.
+
+            this.windowPosition = [
+                this.windowPosition[0] + (this.io.mousePosition[0] - this.io.mousePositionPrev[0]),
+                this.windowPosition[1] + (this.io.mousePosition[1] - this.io.mousePositionPrev[1])
+            ];
+
+            // the mouse position relative to the top-left corner of the window.
+            this.relativeMousePosition = [
+                (this.windowPosition[0] - this.io.mousePosition[0]),
+                (this.windowPosition[1] - this.io.mousePosition[1])
+            ];
+
+        } else {
+
+            /*
+            If the window cannot keep up with the mouse, we must use the relative mouse position to approximate
+            the change in (x,y)
+             */
+
+            this.windowPosition = [
+                this.relativeMousePosition[0] + (this.io.mousePosition[0]),
+                this.relativeMousePosition[1] + (this.io.mousePosition[1])
+            ];
+        }
+
+        // update title bar position.
+        titleBarPosition = this.windowPosition;
+    }
+
+    /*
+     WINDOW RENDERING.
+     */
+
     // draw title bar
-    this._box([this.windowPosition[0], this.windowPosition[1]], [this.windowSizes[0],  this.titleBarHeight],
-        this.titleBarColor);
+    this._box(titleBarPosition, titleBarSizes, this.titleBarColor);
 
     // draw title bar text
     this._textCenter(
@@ -506,6 +558,8 @@ GUI.prototype.begin = function (io, windowTitle) {
     this._window();
 
 
+
+
 }
 
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
@@ -542,6 +596,11 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
 
 
+    /*
+    Make sure to always reset the active widget id, if mouse is released.
+    This makes sure that every widget does not explicitly have to reset this value
+    by themselves, which is a bit error-prone.
+     */
     if(this.activeWidgetId != null && this.io.mouseLeftDownCur == false ) {
         this.activeWidgetId = null;
     }

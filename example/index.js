@@ -38,9 +38,12 @@ shell.on("gl-render", function(t) {
         mouseLeftDownCur: pressed,
         mouseLeftDownPrev: prev,
 
-        mousePosition:[shell.mouseX, shell.mouseY] }
+        mousePosition:shell.mouse,
+        mousePositionPrev:shell.prevMouse}
 
     prev = pressed;
+    
+    
 
 
     gui.begin(io, "Window");
