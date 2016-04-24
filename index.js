@@ -1,10 +1,12 @@
-var createGeometry = require("gl-geometry")
-var createShader = require("gl-shader")
-var mat4 = require("gl-mat4")
-var fontInfo = require("./font_info.js")
-var fontAtlas = require("./font_atlas.js")
-var shaders = require("./shaders.js")
-var createTexture = require('gl-texture2d')
+var createGeometry = require("gl-geometry");
+var createShader = require("gl-shader");
+var mat4 = require("gl-mat4");
+var fontInfo = require("./font_info.js");
+var fontAtlas = require("./font_atlas.js");
+var shaders = require("./shaders.js");
+var createTexture = require('gl-texture2d');
+var hashString = require('hash-string');
+var clamp = require('clamp');
 
 /*
  Constructor
@@ -47,6 +49,13 @@ function GUI(gl) {
     this.fontAtlasTexture.minFilter = gl.LINEAR;
 
     this.textScale = 1.0;
+
+    /*
+    Keeps track of the ID of the widget that is currently being pressed down.
+    We need to keep track of this, because otherwise we can't, for instance,  affect the value of a
+    slider while the mouse is OUTSIDE the hitbox of the slider.
+     */
+    this.activeWidgetId = null;
 }
 
 GUI.prototype._getCharDesc = function (char) {
@@ -282,6 +291,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
      */
 
     var sliderPosition = this.windowCaret;
+    var widgetId = hashString(labelStr);
 
     // * if we use the height of a single digit, we know that the slider will always be high enough.
     // (since all digits have equal height in our font).
@@ -291,23 +301,33 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
         this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
     ];
 
-    if(this.io.mouseLeftDown) {
+    if (
+        inBox(sliderPosition, sliderSizes, this.io.mousePosition) &&
+        this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
 
-        if(inBox(sliderPosition, sliderSizes, this.io.mousePosition) ) {
-            // if the mouse is clicking on the slider, we modify `value.val` based
-            // on the x-position of the mouse.
-
-            var xMax = sliderPosition[0] + sliderSizes[0];
-            var xMin = sliderPosition[0];
-
-            value.val = (max - min) * ((this.io.mousePosition[0] - xMin) / (xMax - xMin)) + min;
-
-            if(doRounding)
-                value.val = Math.round(value.val);
-
-        }
+        this.activeWidgetId = widgetId;
     }
 
+    if (this.activeWidgetId == widgetId) {
+        // if the mouse is clicking on the slider, we modify `value.val` based
+        // on the x-position of the mouse.
+
+        var xMax = sliderPosition[0] + sliderSizes[0];
+        var xMin = sliderPosition[0];
+
+        /*
+         Values larger than xMin and xMax should not overflow or underflow the slider.
+         */
+        var mouseX = clamp(this.io.mousePosition[0], xMin, xMax);
+
+        value.val = (max - min) * ((mouseX - xMin) / (xMax - xMin)) + min;
+
+        if (doRounding)
+            value.val = Math.round(value.val);
+
+        this.activeWidgetId = widgetId;
+
+    }
 
 
     /*
@@ -350,6 +370,9 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
 GUI.prototype.button = function (str) {
 
+    var widgetId = hashString(str);
+
+
     /*
     BUTTON RENDERING
      */
@@ -365,11 +388,36 @@ GUI.prototype.button = function (str) {
     ];
 
     //is mouse hovering over button?
-    var isHover = inBox(buttonPosition, buttonSizes, this.io.mousePosition);
-    var isButtonClick = this.io.mouseLeftPressed && isHover;
+   // var isHover = inBox(buttonPosition, buttonSizes, this.io.mousePosition);
+   // var isButtonClick = this.io.mouseLeftPressed && isHover;
 
     var color;
 
+    var isButtonClick = false;
+
+    // we can only hover or click, when are not interacting with some other widget.
+    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
+
+        if(this.io.mouseLeftDownPrev  && !this.io.mouseLeftDownCur ) {
+
+            isButtonClick = true;
+            color = this.clickButtonColor;
+        } else if(this.io.mouseLeftDownCur ) {
+
+            color = this.clickButtonColor;
+            this.activeWidgetId = widgetId;
+        } else {
+            color = this.hoverButtonColor;
+        }
+
+
+    } else {
+        color =  this.buttonColor
+    }
+
+
+
+    /*
     if(isButtonClick) {
         color = this.clickButtonColor;
     } else if(isHover) {
@@ -377,14 +425,20 @@ GUI.prototype.button = function (str) {
     } else {
         color =  this.buttonColor
     }
+    */
 
     this._box(
         buttonPosition,
         buttonSizes, color)
 
+//    console.log("before");
+
+
     // Render button text.
     this._text([buttonPosition[0] + this.buttonSpacing,
         buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
+
+
 
     // move down window caret.
 
@@ -424,9 +478,7 @@ GUI.prototype._window = function () {
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [
         this.windowPosition[0] + this.windowSpacing,
-        this.windowPosition[1] + this.windowSpacing + this.titleBarHeight]
-
-
+        this.windowPosition[1] + this.windowSpacing + this.titleBarHeight];
 }
 
 
@@ -446,6 +498,8 @@ GUI.prototype.begin = function (io, windowTitle) {
 
 
     this.io = io;
+
+
 
 
     // render window.
@@ -484,6 +538,14 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     this.allGuiGeometry.draw()
 
     gl.disable(gl.BLEND)
+
+
+
+
+    if(this.activeWidgetId != null && this.io.mouseLeftDownCur == false ) {
+        this.activeWidgetId = null;
+    }
+
 
 }
 

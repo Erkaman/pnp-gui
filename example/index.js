@@ -35,15 +35,16 @@ shell.on("gl-render", function(t) {
     var pressed = shell.wasDown("mouse-left");
 
     var io = {
-        mouseLeftPressed: !pressed && prev,
-        mouseLeftDown: pressed,
+        mouseLeftDownCur: pressed,
+        mouseLeftDownPrev: prev,
 
         mousePosition:[shell.mouseX, shell.mouseY] }
 
     prev = pressed;
 
+
     gui.begin(io, "Window");
-    
+
     if(gui.button("Eric Arneback")) {
         console.log("button");
     }
@@ -55,10 +56,11 @@ shell.on("gl-render", function(t) {
     gui.button("1234567890.012");
 
 
-    gui.sliderInt("NUM_SAMPLES", intValue, 2, 13);
+    gui.sliderInt("NUM_SAMPLES2", intValue, 2, 13);
     gui.sliderFloat("density", floatValue, 3, 19);
 
     gui.button("1234567890.012");
+
 
     gui.end(gl,  canvas.width, canvas.height);
 
