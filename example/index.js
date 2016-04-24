@@ -48,6 +48,8 @@ shell.on("gl-render", function(t) {
 
     gui.begin(io, "Window");
 
+    gui.textLine("Hello World!");
+
     if(gui.button("Eric Arneback")) {
         console.log("button");
     }
@@ -56,6 +58,9 @@ shell.on("gl-render", function(t) {
     gui.button("Button");
     gui.button("Lorem Ipsum");
     gui.button("NUM_SAMPLES");
+
+    gui.textLine("A Text Line");
+
     gui.button("1234567890.012");
 
 

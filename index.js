@@ -256,10 +256,6 @@ function inBox(p, s, x) {
     var maxX = p[0] + s[0];
     var maxY = p[1] + s[1];
 
-
-    //console.log(minX, maxX, minY, maxY, x, y)
-
-
     return (
         minX <= x[0] && x[0] <= maxX &&
         minY <= x[1] && x[1] <= maxY
@@ -438,6 +434,20 @@ GUI.prototype.button = function (str) {
 
     return false;
 }
+
+
+GUI.prototype.textLine = function (str) {
+
+    var textLinePosition = this.windowCaret;
+
+    var textSizes = this._getTextSizes(str);
+    
+    // Render button text.
+    this._textCenter(textLinePosition, textSizes, str);
+    
+    this._newline(textSizes[1]);
+}
+
 
 GUI.prototype._window = function () {
 
