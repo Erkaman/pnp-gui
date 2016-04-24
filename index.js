@@ -46,6 +46,17 @@ function GUI(gl) {
     // the horizontal spacing between the top and bottom borders and the text in the color draggers.
     this.colorDraggerSpacing = 5;
 
+    /*
+    The colors of the three color draggers in the rgbDragger widgets.
+    "Hover", refers to the color when the dragger is hovered.
+     */
+    this.colorDraggerRedColor =        [0.3, 0.0, 0.0];
+    this.colorDraggerRedColorHover =   [0.4, 0.0, 0.0];
+    this.colorDraggerGreenColor =      [0.0, 0.3, 0.0];
+    this.colorDraggerGreenColorHover = [0.0, 0.4, 0.0];
+    this.colorDraggerBlueColor =       [0.0, 0.0, 0.3];
+    this.colorDraggerBlueColorHover =  [0.0, 0.0, 0.4];
+
 
     this.windowPosition = [20, 20];
     this.windowSizes = [360, 400];
@@ -320,7 +331,7 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
     this._slider(str, value, min, max, true);
 }
 
-GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, width, position) {
+GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, colorHover,  width, position) {
 
     var draggerPosition = position;
     var widgetId = hashString(labelStr+ colorLabelStr);
@@ -329,17 +340,15 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, w
     var min = 0.0;
     var max = 1.0;
 
-
-
     var draggerSizes = [
         width,
         this._getTextSizes("0")[1] + 2*this.colorDraggerSpacing
     ];
 
 
-
+    var mouseCollision = inBox(draggerPosition, draggerSizes, this.io.mousePosition);
     if (
-        inBox(draggerPosition, draggerSizes, this.io.mousePosition) &&
+        mouseCollision &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
         // if slider is clicked, it becomes active.
         this.activeWidgetId = widgetId;
@@ -360,9 +369,16 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, w
 
     var sliderValueStr = colorLabelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
 
+
+    /*
+    If either widget is active, OR we are hovering but not clicking,
+    switch to hover color.
+     */
+    var isHover = (this.activeWidgetId == widgetId) || (mouseCollision && !this.io.mouseLeftDownCur  );
+
     this._box(
         draggerPosition,
-        draggerSizes, color);
+        draggerSizes, isHover ? colorHover : color);
 
 
 
@@ -393,7 +409,8 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
     var rValue = {val: value[0] };
     var draggerPosition = this.windowCaret;
     var position = draggerPosition;
-    var result = this._colorDragger(labelStr, "R:", rValue, [0.3, 0.0, 0.0], colorDraggerWidth,  position );
+    var result = this._colorDragger(labelStr, "R:", rValue, this.colorDraggerRedColor ,
+        this.colorDraggerRedColorHover, colorDraggerWidth,  position );
 
     value[0] = rValue.val;
 
@@ -403,7 +420,8 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
 
     var gValue = {val: value[1] };
     position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
-    result = this._colorDragger(labelStr, "G:", gValue, [0.0, 0.3, 0.0], colorDraggerWidth,  position );
+    result = this._colorDragger(labelStr, "G:", gValue, this.colorDraggerGreenColor,
+        this.colorDraggerGreenColorHover, colorDraggerWidth,  position );
 
     // update G-value
     value[1] = gValue.val;
@@ -414,7 +432,8 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
 
     var bValue = {val: value[2] };
     position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
-    result = this._colorDragger(labelStr, "B:", bValue, [0.0, 0.0, 0.3], colorDraggerWidth,  position );
+    result = this._colorDragger(labelStr, "B:", bValue, this.colorDraggerBlueColor,
+        this.colorDraggerBlueColorHover, colorDraggerWidth,  position );
 
     // update B-value
     value[2] = bValue.val;
@@ -431,9 +450,6 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
 
         draggerSizes[0] + this.sliderLabelSpacing + draggerLabelStrSizes[0],
         draggerSizes[1]];
-
-
-
 }
 
 GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
