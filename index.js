@@ -405,31 +405,20 @@ GUI.prototype.button = function (str) {
     return false;
 }
 
-GUI.prototype._window = function (io) {
-
-    /*
-    this.titleBarHeight = 30;
-    this.titleBarColor = [0.0, 0.0, 0.8];
-*/
-
+GUI.prototype._window = function () {
 
     // draw title bar
     this._box([this.windowPosition[0], this.windowPosition[1]], [this.windowSizes[0],  this.titleBarHeight],
         this.titleBarColor);
 
     // draw title bar text
-    /*var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
-    var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
-    */
-
-
     this._textCenter(
         [this.windowPosition[0]+this.titleBarVerticalSpacing, this.windowPosition[1]],
         [this._getTextSizes(this.windowTitle)[0],   this.titleBarHeight ],
         this.windowTitle);
 
 
-
+    // draw the actual window.
     this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes, this.windowColor);
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
@@ -486,8 +475,6 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
     this.shader.uniforms.uProj = projection;
     this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
-
-
 
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
