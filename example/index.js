@@ -25,6 +25,7 @@ var boolValue1 = {val: true };
 var boolValue2 = {val: false };
 var boolValue3 = {val: true };
 var boolValue4 = {val: false };
+var bg = [0.6, 0.7, 1.0];
 
 shell.on("gl-render", function(t) {
 
@@ -33,7 +34,7 @@ shell.on("gl-render", function(t) {
     var canvas = shell.canvas;
     
     gl.viewport(0, 0, canvas.width, canvas.height)
-    gl.clearColor(0.0, 0.6, 0.7, 1.0);
+    gl.clearColor(bg[0], bg[1],bg[2], 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     var pressed = shell.wasDown("mouse-left");
@@ -71,7 +72,7 @@ shell.on("gl-render", function(t) {
     gui.button("1234567890.012");
 
 
-    gui.sliderInt("NUM_SAMPLES2", intValue, 2, 13);
+    gui.sliderInt("SAMPLES2", intValue, 2, 13);
     gui.sliderFloat("density", floatValue, 3, 19);
 
     gui.button("1234567890.012");
@@ -82,6 +83,15 @@ shell.on("gl-render", function(t) {
     gui.sameLine();
     gui.checkbox("LABEL3", boolValue3);
     gui.checkbox("LABEL4", boolValue4);
+
+
+    gui.sliderFloat("density", floatValue, 3, 19);
+
+    gui.rgbDragger("Color", bg);
+
+    gui.button("lol");
+    gui.textLine("Another one");
+
 
 
     gui.end(gl,  canvas.width, canvas.height);

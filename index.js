@@ -33,7 +33,7 @@ function GUI(gl) {
     // the horizontal space between the slider and its label.
     this.sliderLabelSpacing = 4;
     // the slider is dynamically scaled to occupy this much of the window width.
-    this.sliderWindowRatio = 0.6;
+    this.sliderWindowRatio = 0.8;
     // the color of the slider background.
     this.sliderBackgroundColor = [0.0 ,0.0, 0.0];
     // the color of the bar in the slider.
@@ -41,9 +41,14 @@ function GUI(gl) {
     // the number of decimal digits that the slider value is displayed with.
     this.sliderValueNumDecimalDigits =  2;
 
+    // the vertical spacing between the three color dragger widgets in the rgbSlider widget.
+    this.rgbSliderWidgetSpacing = 5;
+    // the horizontal spacing between the top and bottom borders and the text in the color draggers.
+    this.colorDraggerSpacing = 5;
+
 
     this.windowPosition = [20, 20];
-    this.windowSizes = [250, 400];
+    this.windowSizes = [360, 400];
     this.windowColor = [0.1, 0.1, 0.1];
 
 
@@ -315,6 +320,121 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
     this._slider(str, value, min, max, true);
 }
 
+GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, width, position) {
+
+    var draggerPosition = position;
+    var widgetId = hashString(labelStr+ colorLabelStr);
+
+    // A color component in RGB is in range [0,1]
+    var min = 0.0;
+    var max = 1.0;
+
+
+
+    var draggerSizes = [
+        width,
+        this._getTextSizes("0")[1] + 2*this.colorDraggerSpacing
+    ];
+
+
+
+    if (
+        inBox(draggerPosition, draggerSizes, this.io.mousePosition) &&
+        this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
+        // if slider is clicked, it becomes active.
+        this.activeWidgetId = widgetId;
+    }
+
+    if (this.activeWidgetId == widgetId) {
+        value.val += 0.01*(this.io.mousePosition[0] - this.io.mousePositionPrev[0]);
+        value.val = clamp(value.val, min, max);
+
+        this.activeWidgetId = widgetId;
+
+    }
+
+    /*
+     DRAGGER RENDERING
+     */
+
+
+    var sliderValueStr = colorLabelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
+
+    this._box(
+        draggerPosition,
+        draggerSizes, color);
+
+
+
+    var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
+
+
+    // render text in slider
+    this._textCenter(draggerPosition, draggerSizes, sliderValueStr);
+
+    // return top right corner, and bottom right corner of color dragger.
+    return {
+        topRight   :  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]  ],
+        bottomRight:  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]+  draggerSizes[1]  ],
+    };
+}
+
+
+GUI.prototype.rgbDragger = function (labelStr, value) {
+    this._moveWindowCaret();
+
+    var colorDraggerWidth =
+        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - 2*this.colorDraggerSpacing) / 3.0;
+
+    /*
+    Red color dragger widget
+     */
+
+    var rValue = {val: value[0] };
+    var draggerPosition = this.windowCaret;
+    var position = draggerPosition;
+    var result = this._colorDragger(labelStr, "R:", rValue, [0.3, 0.0, 0.0], colorDraggerWidth,  position );
+
+    value[0] = rValue.val;
+
+    /*
+     Green color dragger widget
+     */
+
+    var gValue = {val: value[1] };
+    position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
+    result = this._colorDragger(labelStr, "G:", gValue, [0.0, 0.3, 0.0], colorDraggerWidth,  position );
+
+    // update G-value
+    value[1] = gValue.val;
+
+    /*
+     Blue color dragger widget
+     */
+
+    var bValue = {val: value[2] };
+    position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
+    result = this._colorDragger(labelStr, "B:", bValue, [0.0, 0.0, 0.3], colorDraggerWidth,  position );
+
+    // update B-value
+    value[2] = bValue.val;
+
+    // the total size of all the three draggers.
+    var draggerSizes = [result.bottomRight[0] - draggerPosition[0], result.bottomRight[1] - draggerPosition[1]] ;
+
+    var draggerLabelPosition = [draggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, draggerPosition[1]]
+    var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0],  draggerSizes[1]  ];
+    this._textCenter(draggerLabelPosition, draggerLabelStrSizes, labelStr);
+
+
+    this.prevWidgetSizes = [
+
+        draggerSizes[0] + this.sliderLabelSpacing + draggerLabelStrSizes[0],
+        draggerSizes[1]];
+
+
+
+}
 
 GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
