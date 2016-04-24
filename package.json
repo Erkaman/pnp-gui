@@ -12,8 +12,13 @@
   "author": "Eric Arnebäck <arnebackeric@gmail.com> (https://github.com/Erkaman)",
   "license": "MIT",
   "devDependencies": {
+    "budo": "^7.1.0",
+    "bunny": "^1.0.1",
+    "geo-3d-box": "^2.0.2",
     "gl-now": "^1.4.0",
-    "budo": "^7.1.0"
+    "gl-vec3": "^1.0.3",
+    "normals": "^1.0.1",
+    "orbit-camera": "^1.0.0"
   },
   "dependencies": {
     "clamp": "^1.0.1",

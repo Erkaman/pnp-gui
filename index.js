@@ -955,7 +955,81 @@ GUI.prototype.begin = function (io, windowTitle) {
 
 }
 
+GUI.prototype._restoreGLState = function (gl) {
+  //  console.log("restore",  this.lastElementArrayBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.lastArrayBuffer)
+
+ //   gl.bindVertexArray(gl.VERTEX_ARRAY_BINDING, this.lastVertexArray)
+
+
+    this.my_ext.bindVertexArrayOES(this.lastVAO)
+
+    console.log("HELLO");
+
+}
+
+
+GUI.prototype._backupGLState = function (gl) {
+
+    var lastProgram = gl.getParameter(gl.CURRENT_PROGRAM);
+
+   // console.log("prog", prog)
+
+  //  gl.getInteger(gl.CURRENT_PROGRAM);
+
+    this.lastElementArrayBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+    this.lastArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+
+
+    this.my_ext = gl.getExtension('OES_vertex_array_object')
+
+    this.lastVAO = gl.getParameter(this.my_ext.VERTEX_ARRAY_BINDING_OES);
+
+  //  console.log("vao", this.lastVAO);
+
+
+
+
+//    this.lastVertexArray = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
+
+    //console.log("ext", this.my_ext );
+
+
+
+    //  GL_VERTEX_ARRAY_BINDING,
+
+
+
+
+   // gl.ELEMENT_ARRAY_BUFFER_BINDING
+
+
+    //glBindBuffer(ELEMENT_ARRAY_BUFFER, last_array_buffer);
+    //this.gl.bindBuffer(this.type, this.handle)
+
+
+    /*
+        GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
+        GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+        GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+        GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+        GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+        GLint last_blend_src; glGetIntegerv(GL_BLEND_SRC, &last_blend_src);
+        GLint last_blend_dst; glGetIntegerv(GL_BLEND_DST, &last_blend_dst);
+        GLint last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
+        GLint last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
+        GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
+        GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+        GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+        GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    */
+}
+
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
+
+    this._backupGLState(gl);
 
     // create GUI geometry.
     this.allGuiGeometry
@@ -969,7 +1043,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
     /*
     Setup matrices.
-     */
+    */
     var projection = mat4.create()
     mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
 
@@ -977,12 +1051,21 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     this.shader.uniforms.uProj = projection;
     this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
 
+    gl.disable(gl.DEPTH_TEST) // no depth testing; we handle this by manually placing out
+    // widgets in the order we wish them to be rendered.
+
+
+    // for text rendering, enable alpha blending.
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
     // render gui geometry.
     this.allGuiGeometry.bind(this.shader)
+
+
+   // console.log("1");
     this.allGuiGeometry.draw()
+   // console.log("2");
 
     gl.disable(gl.BLEND)
 
@@ -998,6 +1081,8 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
         this.activeWidgetId = null;
     }
 
+
+    this._restoreGLState(gl);
 
 }
 
