@@ -387,12 +387,7 @@ GUI.prototype.button = function (str) {
         textSizes[1] + this.buttonSpacing * 2
     ];
 
-    //is mouse hovering over button?
-   // var isHover = inBox(buttonPosition, buttonSizes, this.io.mousePosition);
-   // var isButtonClick = this.io.mouseLeftPressed && isHover;
-
     var color;
-
     var isButtonClick = false;
 
     // we can only hover or click, when are not interacting with some other widget.
@@ -415,24 +410,9 @@ GUI.prototype.button = function (str) {
         color =  this.buttonColor
     }
 
-
-
-    /*
-    if(isButtonClick) {
-        color = this.clickButtonColor;
-    } else if(isHover) {
-        color = this.hoverButtonColor;
-    } else {
-        color =  this.buttonColor
-    }
-    */
-
     this._box(
         buttonPosition,
         buttonSizes, color)
-
-//    console.log("before");
-
 
     // Render button text.
     this._text([buttonPosition[0] + this.buttonSpacing,
