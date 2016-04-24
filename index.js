@@ -38,6 +38,10 @@ function GUI(gl) {
     this.sliderBackgroundColor = [0.0 ,0.0, 0.0];
     // the color of the bar in the slider.
     this.sliderFillColor =  [0.0 ,0.3, 0.7];
+    // the color of the slider background when hover,
+    this.sliderBackgroundColorHover = [0.2 ,0.2, 0.2];
+    // the color of the bar in the slider when hover.
+    this.sliderFillColorHover =  [0.0 ,0.4, 0.8];
     // the number of decimal digits that the slider value is displayed with.
     this.sliderValueNumDecimalDigits =  2;
 
@@ -56,6 +60,15 @@ function GUI(gl) {
     this.colorDraggerGreenColorHover = [0.0, 0.4, 0.0];
     this.colorDraggerBlueColor =       [0.0, 0.0, 0.3];
     this.colorDraggerBlueColorHover =  [0.0, 0.0, 0.4];
+
+    /*
+    the outer color is the color of the box of the checkbox,
+    and the inner color is the color of the actual checkbox.
+     */
+    this.checkboxOuterColor = [0.3 ,0.3, 0.3];
+    this.checkboxInnerColor = [0.15 ,0.15, 0.15];
+    this.checkboxOuterColorHover = [0.35 ,0.35, 0.35];
+    this.checkboxInnerColorHover = [0.20 ,0.20, 0.20];
 
 
     this.windowPosition = [20, 20];
@@ -471,9 +484,10 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
         this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
     ];
 
+    var mouseCollision = inBox(sliderPosition, sliderSizes, this.io.mousePosition);
 
     if (
-        inBox(sliderPosition, sliderSizes, this.io.mousePosition) &&
+        mouseCollision &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
         // if slider is clicked, it becomes active.
         this.activeWidgetId = widgetId;
@@ -500,6 +514,13 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
     }
 
+    /*
+     If either widget is active, OR we are hovering but not clicking,
+     switch to hover color.
+     */
+    var isHover = (this.activeWidgetId == widgetId) || (mouseCollision && !this.io.mouseLeftDownCur  );
+
+
 
     /*
      SLIDER RENDERING
@@ -515,14 +536,15 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
     this._box(
         sliderPosition,
-        sliderSizes, this.sliderBackgroundColor);
+        sliderSizes, isHover ? this.sliderBackgroundColorHover :  this.sliderBackgroundColor);
 
     /*
     Now fill the slider based on `sliderFill`
      */
     this._box(
         sliderPosition,
-        [sliderSizes[0]*sliderFill,sliderSizes[1]  ], this.sliderFillColor);
+        [sliderSizes[0]*sliderFill,sliderSizes[1]  ],
+        isHover ? this.sliderFillColorHover : this.sliderFillColor);
 
     var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
 
@@ -559,11 +581,13 @@ GUI.prototype.checkbox= function (labelStr, value) {
     var checkboxPosition = this.windowCaret;
     var checkboxSizes = [outerSize, outerSize];
 
-    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false &&
-        inBox(checkboxPosition, checkboxSizes, this.io.mousePosition)) {
+    var mouseCollision = inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
+
+    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
         value.val = !value.val;
     }
 
+    var isHover = mouseCollision;
 
     /*
      CHECKBOX RENDERING
@@ -572,7 +596,7 @@ GUI.prototype.checkbox= function (labelStr, value) {
     // render outer box.
     this._box(
         checkboxPosition,
-        checkboxSizes, [0.0 ,1.0, 0.0]);
+        checkboxSizes, isHover ?  this.checkboxOuterColorHover :  this.checkboxOuterColor);
 
 
     // now render a centered inner box, that shows whether the checkbox is true, or false.
@@ -587,7 +611,7 @@ GUI.prototype.checkbox= function (labelStr, value) {
 
         this._box(
             innerboxPosition,
-            [innerSize, innerSize], [0.0, 0.0, 1.0]);
+            [innerSize, innerSize], isHover ? this.checkboxInnerColorHover : this.checkboxInnerColor);
     }
 
     // now render checkbox label.
