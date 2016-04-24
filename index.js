@@ -278,7 +278,6 @@ else start a line.
 GUI.prototype._moveWindowCaret = function(){
 
     if(this.prevWidgetSizes == null) {
-        console.log("DO NOT MOVE");
         // we have not yet laid out the first widget. Do nothing.
         return;
     }
@@ -390,8 +389,68 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
-    this.prevWidgetSizes = sliderSizes;
+    this.prevWidgetSizes = [sliderSizes[0] + sliderLabelStrSizes[0],sliderSizes[1]  ];
 
+}
+
+
+
+GUI.prototype.checkbox= function (labelStr, value) {
+
+    this._moveWindowCaret();
+
+    /*
+     CHECKBOX IO(if checkbox clicked, flip boolean value.)
+     */
+
+    // use height of zero to determine size of checkbox, to ensure that the textl label does become higher
+    // than the checkbox.
+    var zeroHeight = this._getTextSizes("0")[1];
+
+    var innerSize = zeroHeight + 2*2;
+    var outerSize = zeroHeight + 2*4;
+
+    var checkboxPosition = this.windowCaret;
+    var checkboxSizes = [outerSize, outerSize];
+
+    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false &&
+        inBox(checkboxPosition, checkboxSizes, this.io.mousePosition)) {
+        value.val = !value.val;
+    }
+
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    // render outer box.
+    this._box(
+        checkboxPosition,
+        checkboxSizes, [0.0 ,1.0, 0.0]);
+
+
+    // now render a centered inner box, that shows whether the checkbox is true, or false.
+
+    if(value.val) {
+        var p = checkboxPosition;
+        var s = checkboxSizes;
+        var innerboxPosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerSize )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerSize )),
+        ];
+
+        this._box(
+            innerboxPosition,
+            [innerSize, innerSize], [0.0, 0.0, 1.0]);
+    }
+
+    // now render checkbox label.
+    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0],  checkboxSizes[1]  ];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+
+    this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0],checkboxSizes[1]  ];
 }
 
 

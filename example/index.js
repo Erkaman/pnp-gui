@@ -21,6 +21,10 @@ shell.on("gl-init", function() {
 var prev = false;
 var intValue = {val: 5 };
 var floatValue = {val: 5.54 };
+var boolValue1 = {val: true };
+var boolValue2 = {val: false };
+var boolValue3 = {val: true };
+var boolValue4 = {val: false };
 
 shell.on("gl-render", function(t) {
 
@@ -61,7 +65,7 @@ shell.on("gl-render", function(t) {
     gui.button("Lorem Ipsum");
 
     gui.button("NUM_SAMPLES");
-    
+
     gui.textLine("A Text Line");
 
     gui.button("1234567890.012");
@@ -71,6 +75,13 @@ shell.on("gl-render", function(t) {
     gui.sliderFloat("density", floatValue, 3, 19);
 
     gui.button("1234567890.012");
+
+    gui.checkbox("LABEL", boolValue1);
+    gui.sameLine();
+    gui.checkbox("LABEL2", boolValue2);
+    gui.sameLine();
+    gui.checkbox("LABEL3", boolValue3);
+    gui.checkbox("LABEL4", boolValue4);
 
 
     gui.end(gl,  canvas.width, canvas.height);
