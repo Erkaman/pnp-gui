@@ -50,15 +50,18 @@ shell.on("gl-render", function(t) {
 
     gui.textLine("Hello World!");
 
+
     if(gui.button("Eric Arneback")) {
         console.log("button");
     }
 
 
     gui.button("Button");
+    gui.sameLine();
     gui.button("Lorem Ipsum");
-    gui.button("NUM_SAMPLES");
 
+    gui.button("NUM_SAMPLES");
+    
     gui.textLine("A Text Line");
 
     gui.button("1234567890.012");

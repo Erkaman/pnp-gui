@@ -56,6 +56,14 @@ function GUI(gl) {
     slider while the mouse is OUTSIDE the hitbox of the slider.
      */
     this.activeWidgetId = null;
+
+    /*
+    See _moveWindowCaret() for an explanation.
+     */
+    this.sameLineActive = false;
+
+    this.prevWidgetSizes = null;
+
 }
 
 GUI.prototype._getCharDesc = function (char) {
@@ -264,12 +272,32 @@ function inBox(p, s, x) {
 
 
 /*
-After adding a widget of height `widgetHeight`, move the caret down a line.
+After adding a widget, move the window caret to the right of the widget if this.sameLineActive,
+else start a line.
  */
-GUI.prototype._newline = function (widgetHeight) {
-    this.windowCaret = [this.windowCaret[0], this.windowCaret[1] + this.widgetSpacing + widgetHeight]
+GUI.prototype._moveWindowCaret = function(){
+
+    if(this.prevWidgetSizes == null) {
+        console.log("DO NOT MOVE");
+        // we have not yet laid out the first widget. Do nothing.
+        return;
+    }
+
+    if(this.sameLineActive) {
+        this.windowCaret = [this.windowCaret[0] + this.widgetSpacing + this.prevWidgetSizes[0], this.windowCaret[1]];
+    } else {
+        this.windowCaret = [this.windowSpacing + this.windowPosition[0], this.windowCaret[1] + this.widgetSpacing + this.prevWidgetSizes[1]];
+    }
+
+    // the user have to explicitly call sameLine() again if we he wants samLineActive again.
+    this.sameLineActive = false;
 
 }
+
+GUI.prototype.sameLine = function(){
+    this.sameLineActive = true;
+}
+
 
 GUI.prototype.sliderFloat = function (str, value, min, max) {
     this._slider(str, value, min, max, false);
@@ -281,6 +309,8 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
 
 
 GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
+
+    this._moveWindowCaret();
 
     /*
     SLIDER IO
@@ -360,11 +390,15 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
-    this._newline(sliderSizes[1]);
+    this.prevWidgetSizes = sliderSizes;
+
 }
 
 
 GUI.prototype.button = function (str) {
+
+    this._moveWindowCaret();
+
 
     var widgetId = hashString(str);
 
@@ -418,7 +452,7 @@ GUI.prototype.button = function (str) {
 
     // move down window caret.
 
-    this._newline(buttonSizes[1]);
+    this.prevWidgetSizes =(buttonSizes);
 
 
     /*
@@ -438,14 +472,17 @@ GUI.prototype.button = function (str) {
 
 GUI.prototype.textLine = function (str) {
 
+    this._moveWindowCaret();
+
     var textLinePosition = this.windowCaret;
 
     var textSizes = this._getTextSizes(str);
     
     // Render button text.
     this._textCenter(textLinePosition, textSizes, str);
-    
-    this._newline(textSizes[1]);
+
+    this.prevWidgetSizes = textSizes;
+
 }
 
 
@@ -521,6 +558,7 @@ GUI.prototype._window = function () {
     this.windowCaret = [
         this.windowPosition[0] + this.windowSpacing,
         this.windowPosition[1] + this.windowSpacing + this.titleBarHeight];
+    this.prevWidgetSizes = null; // should be null at the beginning.
 }
 
 
