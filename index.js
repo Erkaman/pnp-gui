@@ -32,6 +32,15 @@ function GUI(gl) {
     this.sliderVerticalSpacing = 4;
     // the horizontal space between the slider and its label.
     this.sliderLabelSpacing = 4;
+    // the slider is dynamically scaled to occupy this much of the window width.
+    this.sliderWindowRatio = 0.6;
+    // the color of the slider background.
+    this.sliderBackgroundColor = [0.0 ,0.0, 0.0];
+    // the color of the bar in the slider.
+    this.sliderFillColor =  [0.0 ,0.3, 0.7];
+    // the number of decimal digits that the slider value is displayed with.
+    this.sliderValueNumDecimalDigits =  2;
+
 
     this.windowPosition = [20, 20];
     this.windowSizes = [250, 400];
@@ -322,14 +331,15 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     // (since all digits have equal height in our font).
     // * also, we dynamically determine the slider width, based on the window width.
     var sliderSizes = [
-        (this.windowSizes[0] - 2* this.windowSpacing)*0.6,
+        (this.windowSizes[0] - 2* this.windowSpacing)*this.sliderWindowRatio,
         this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
     ];
+
 
     if (
         inBox(sliderPosition, sliderSizes, this.io.mousePosition) &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
-
+        // if slider is clicked, it becomes active.
         this.activeWidgetId = widgetId;
     }
 
@@ -365,18 +375,18 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
      */
     var sliderFill = (value.val - min) / (max - min);
 
-    var sliderValueStr =  value.val.toFixed(2)  ;
+    var sliderValueStr =  value.val.toFixed(this.sliderValueNumDecimalDigits);
 
     this._box(
         sliderPosition,
-        sliderSizes, [0.0 ,0.0, 0.0]);
+        sliderSizes, this.sliderBackgroundColor);
 
     /*
     Now fill the slider based on `sliderFill`
      */
     this._box(
         sliderPosition,
-        [sliderSizes[0]*sliderFill,sliderSizes[1]  ], [0.0 ,0.3, 0.7]);
+        [sliderSizes[0]*sliderFill,sliderSizes[1]  ], this.sliderFillColor);
 
     var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
 
@@ -448,7 +458,6 @@ GUI.prototype.checkbox= function (labelStr, value) {
     var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
     var labelStrSizes = [this._getTextSizes(labelStr)[0],  checkboxSizes[1]  ];
     this._textCenter(labelPosition, labelStrSizes, labelStr);
-
 
     this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0],checkboxSizes[1]  ];
 }
