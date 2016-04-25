@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "clamp": "^1.0.1",
+    "gl-buffer": "^2.1.2",
     "gl-geometry": "^3.1.0",
     "gl-mat4": "^1.1.4",
     "gl-shader": "^4.2.0",

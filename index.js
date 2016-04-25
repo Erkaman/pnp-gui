@@ -7,6 +7,7 @@ var shaders = require("./shaders.js");
 var createTexture = require('gl-texture2d');
 var hashString = require('hash-string');
 var clamp = require('clamp');
+var createBuffer = require('gl-buffer');
 
 /*
  Constructor
@@ -15,6 +16,14 @@ function GUI(gl) {
 
     this.allGuiGeometry = createGeometry(gl)
     this.shader = createShader(gl, shaders.vert, shaders.frag)
+
+
+    this.positionBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
+    this.colorBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
+    this.uvBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
+
+    this.indexBufferObject = createBuffer(gl , [], gl.ELEMENT_ARRAY_BUFFER, gl.DYNAMIC_DRAW)
+
 
     // distance from window-borders to the widgets.
     this.windowSpacing = 19;
@@ -654,7 +663,6 @@ GUI.prototype.radioButton= function (labelStr, value, id) {
 
     var radioButtonPosition = this.windowCaret;
 
-    console.log("caret", this.windowCaret);
 
     var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
 
@@ -950,14 +958,11 @@ GUI.prototype.begin = function (io, windowTitle) {
     // render window.
     this._window();
 
-
-
-
 }
 
 GUI.prototype._restoreGLState = function (gl) {
   //  console.log("restore",  this.lastElementArrayBuffer);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer)
+  /*  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.lastArrayBuffer)
 
@@ -966,13 +971,78 @@ GUI.prototype._restoreGLState = function (gl) {
 
     this.my_ext.bindVertexArrayOES(this.lastVAO)
 
-    console.log("HELLO");
+    console.log("HELLO");*/
+
+
+    this._restoreVertexAttrib(gl, 0);
+    this._restoreVertexAttrib(gl, 1);
+    this._restoreVertexAttrib(gl, 2);
+
+    this._restoreVertexAttrib(gl, 3);
+}
+
+//(gl.getVertexAttrib(attribute.location, gl.VERTEX_ATTRIB_ARRAY_ENABLED),
+
+GUI.prototype._backupVertexAttrib = function (gl, index) {
+
+    this.lastVertexAttribEnabled[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+
+    this.lastVertexAttribSize[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_SIZE);
+
+    this.lastVertexAttribType[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_TYPE);
+
+    this.lastVertexAttribNormalized[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+
+
+
+    this.lastVertexAttribStride[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_STRIDE);
+
+    this.lastVertexAttribPointer[index] = gl.getVertexAttribOffset(index, gl.VERTEX_ATTRIB_ARRAY_POINTER);
+
+
+
+
+    // console.log("enable", this.lastVertexAttribEnabled[index] );
+}
+
+GUI.prototype._restoreVertexAttrib = function (gl, index) {
+
+    if(this.lastVertexAttribEnabled[index]) {
+        gl.enableVertexAttribArray(index)
+
+        gl.vertexAttribPointer(
+            index,
+            this.lastVertexAttribSize[index],
+            this.lastVertexAttribType[index],
+            this.lastVertexAttribNormalized[index],
+            this.lastVertexAttribStride[index],
+            this.lastVertexAttribPointer[index]);
+
+    }else {
+        gl.disableVertexAttribArray(index)
+    }
+  //  console.log("lol: ", this.lastVertexAttribSize[index]  )
 
 }
 
 
 GUI.prototype._backupGLState = function (gl) {
 
+    this.lastVertexAttribEnabled = [];
+    this.lastVertexAttribSize = [];
+    this.lastVertexAttribType= [];
+    this.lastVertexAttribNormalized= [];
+    this.lastVertexAttribStride= [];
+    this.lastVertexAttribPointer= [];
+
+
+    this._backupVertexAttrib(gl, 0);
+    this._backupVertexAttrib(gl, 1);
+    this._backupVertexAttrib(gl, 2);
+    this._backupVertexAttrib(gl, 3);
+
+
+    /*
     var lastProgram = gl.getParameter(gl.CURRENT_PROGRAM);
 
    // console.log("prog", prog)
@@ -986,7 +1056,7 @@ GUI.prototype._backupGLState = function (gl) {
     this.my_ext = gl.getExtension('OES_vertex_array_object')
 
     this.lastVAO = gl.getParameter(this.my_ext.VERTEX_ARRAY_BINDING_OES);
-
+*/
   //  console.log("vao", this.lastVAO);
 
 
@@ -1027,19 +1097,31 @@ GUI.prototype._backupGLState = function (gl) {
     */
 }
 
+var once = false;
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
-    this._backupGLState(gl);
-
-    // create GUI geometry.
-    this.allGuiGeometry
-        .attr("aPosition", this.positionBuffer, {size: 2})
-        .attr("aColor", this.colorBuffer, {size: 3})
-        .attr("aUv", this.uvBuffer, {size: 2})
-        .faces(this.indexBuffer);
+    var ext = gl.getExtension('OES_vertex_array_object')
+    ext.bindVertexArrayOES(null)
 
 
-    this.shader.bind()
+    this.positionBufferObject.update(this.positionBuffer)
+    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location)
+    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0)
+    this.positionBufferObject.unbind();
+
+
+    this.colorBufferObject.update(this.colorBuffer)
+    gl.enableVertexAttribArray(this.shader.attributes.aColor.location)
+    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 3, gl.FLOAT, false, 0, 0)
+    this.colorBufferObject.unbind();
+
+    this.uvBufferObject.update(this.uvBuffer)
+    gl.enableVertexAttribArray(this.shader.attributes.aUv.location)
+    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0)
+    this.uvBufferObject.unbind();
+
+    this.indexBufferObject.update(this.indexBuffer)
+
 
     /*
     Setup matrices.
@@ -1047,6 +1129,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     var projection = mat4.create()
     mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
 
+    this.shader.bind()
 
     this.shader.uniforms.uProj = projection;
     this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
@@ -1059,18 +1142,11 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    // render gui geometry.
-    this.allGuiGeometry.bind(this.shader)
+    gl.drawElements(gl.TRIANGLES, (this.indexBufferIndex), gl.UNSIGNED_SHORT, 0);
 
-
-   // console.log("1");
-    this.allGuiGeometry.draw()
-   // console.log("2");
 
     gl.disable(gl.BLEND)
-
-
-
+    
 
     /*
     Make sure to always reset the active widget id, if mouse is released.
@@ -1082,7 +1158,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     }
 
 
-    this._restoreGLState(gl);
+  // this._restoreGLState(gl);
 
 }
 
