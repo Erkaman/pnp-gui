@@ -78,15 +78,7 @@ shell.on("gl-init", function () {
 var prev = false;
 
 
-var intValue = {val: 5 };
-var floatValue = {val: 5.54 };
-var boolValue1 = {val: true };
-var boolValue2 = {val: false };
-var boolValue3 = {val: true };
-var boolValue4 = {val: false };
-var bg = [0.6, 0.7, 1.0];
-var radioButtonValue = {val: 1};
-var radioButtonValue2 = {val: 0};
+var floatValue = {val: 7.4};
 
 shell.on("gl-render", function (t) {
 
@@ -107,7 +99,7 @@ shell.on("gl-render", function (t) {
 
 
     shader.bind()
-  bunnyGeo.bind(shader)
+    bunnyGeo.bind(shader)
     shader.uniforms.uModel = model
     shader.uniforms.uView = view
     shader.uniforms.uProjection = projection
@@ -129,56 +121,7 @@ shell.on("gl-render", function (t) {
     gui.begin(io, "Window");
     gui.button("Hello World!");
 
-
-    gui.textLine("Hello World!");
-
-
-    if(gui.button("Eric Arneback")) {
-        console.log("button");
-    }
-
-
-    gui.button("Button");
-    gui.sameLine();
-    gui.button("Lorem Ipsum");
-
-    gui.button("NUM_SAMPLES");
-
-    gui.textLine("A Text Line");
-
-    gui.button("1234567890.012");
-
-
-    gui.sliderInt("SAMPLES2", intValue, 2, 13);
     gui.sliderFloat("density", floatValue, 3, 19);
-
-    gui.button("1234567890.012");
-
-    gui.checkbox("LABEL", boolValue1);
-    gui.sameLine();
-    gui.checkbox("LABEL2", boolValue2);
-    gui.sameLine();
-    gui.checkbox("LABEL3", boolValue3);
-    gui.checkbox("LABEL4", boolValue4);
-
-
-    gui.sliderFloat("density", floatValue, 3, 19);
-
-    gui.rgbDragger("Color", bg);
-
-    gui.button("lol");
-    gui.textLine("Another one");
-
-    gui.radioButton("a", radioButtonValue, 0);
-    gui.sameLine();
-    gui.radioButton("b", radioButtonValue, 1);
-    gui.sameLine();
-    gui.radioButton("c", radioButtonValue, 2);
-
-
-    gui.radioButton("x", radioButtonValue2, 0);
-    gui.radioButton("y", radioButtonValue2, 1);
-    gui.radioButton("z", radioButtonValue2, 2);
 
 
     gui.end(gl,  canvas.width, canvas.height);
@@ -187,9 +130,15 @@ shell.on("gl-render", function (t) {
 })
 
 shell.on("tick", function() {
+
+    if(gui.hasMouseFocus() )
+        return;
+
     if(shell.wasDown("mouse-left")) {
-        camera.rotate([shell.mouseX/shell.width-0.5, shell.mouseY/shell.height-0.5],
-            [shell.prevMouseX/shell.width-0.5, shell.prevMouseY/shell.height-0.5])
+
+        var speed  = 3.0;
+        camera.rotate([ (shell.mouseX/shell.width-0.5)*speed, (shell.mouseY/shell.height-0.5)*speed ],
+            [ (shell.prevMouseX/shell.width-0.5)*speed, (shell.prevMouseY/shell.height-0.5)*speed ])
     }
     if(shell.scroll[1]) {
         camera.zoom(shell.scroll[1] * 0.1)
@@ -201,27 +150,71 @@ shell.on("tick", function() {
 
 
 /*
-gui = new createGui(gl)
+
+
+ var intValue = {val: 5 };
+ var floatValue = {val: 5.54 };
+ var boolValue1 = {val: true };
+ var boolValue2 = {val: false };
+ var boolValue3 = {val: true };
+ var boolValue4 = {val: false };
+ var bg = [0.6, 0.7, 1.0];
+ var radioButtonValue = {val: 1};
+ var radioButtonValue2 = {val: 0};
 
 
 
 
 
-
-gui.begin(io, "Window");
-
-gui.rgbDragger("Background", bg);
+ gui.textLine("Hello World!");
 
 
-gui.end(gl,  canvas.width, canvas.height);
+ if(gui.button("Eric Arneback")) {
+ console.log("button");
+ }
 
 
+ gui.button("Button");
+ gui.sameLine();
+ gui.button("Lorem Ipsum");
 
-})
- var prev = false;
+ gui.button("NUM_SAMPLES");
+
+ gui.textLine("A Text Line");
+
+ gui.button("1234567890.012");
 
 
+ gui.sliderInt("SAMPLES2", intValue, 2, 13);
+ gui.sliderFloat("density", floatValue, 3, 19);
 
+ gui.button("1234567890.012");
+
+ gui.checkbox("LABEL", boolValue1);
+ gui.sameLine();
+ gui.checkbox("LABEL2", boolValue2);
+ gui.sameLine();
+ gui.checkbox("LABEL3", boolValue3);
+ gui.checkbox("LABEL4", boolValue4);
+
+
+ gui.sliderFloat("density", floatValue, 3, 19);
+
+ gui.rgbDragger("Color", bg);
+
+ gui.button("lol");
+ gui.textLine("Another one");
+
+ gui.radioButton("a", radioButtonValue, 0);
+ gui.sameLine();
+ gui.radioButton("b", radioButtonValue, 1);
+ gui.sameLine();
+ gui.radioButton("c", radioButtonValue, 2);
+
+
+ gui.radioButton("x", radioButtonValue2, 0);
+ gui.radioButton("y", radioButtonValue2, 1);
+ gui.radioButton("z", radioButtonValue2, 2);
 
 
 

@@ -924,14 +924,36 @@ GUI.prototype._window = function () {
         this.windowTitle);
 
 
+
+
+
     // draw the actual window.
-    this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes, this.windowColor);
+    this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes,
+       this.windowColor);
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [
         this.windowPosition[0] + this.windowSpacing,
         this.windowPosition[1] + this.windowSpacing + this.titleBarHeight];
     this.prevWidgetSizes = null; // should be null at the beginning.
+
+
+    /*
+     Determine whether the mouse is inside the window. We need this in some places.
+     */
+    this.mouseInWindow = _inBox(titleBarPosition,
+        [
+            this.windowSizes[0],
+            this.titleBarHeight + this.windowSizes[1]
+        ], this.io.mousePosition);
+}
+
+/*
+Mouse has focus EITHER when the mouse is inside the window, OR
+it is outside the window, but is interacting with a widget.
+ */
+GUI.prototype.hasMouseFocus = function() {
+    return this.mouseInWindow || this.activeWidgetId != null;
 }
 
 
@@ -951,9 +973,6 @@ GUI.prototype.begin = function (io, windowTitle) {
 
 
     this.io = io;
-
-
-
 
     // render window.
     this._window();
