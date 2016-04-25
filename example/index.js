@@ -104,19 +104,10 @@ shell.on("gl-render", function (t) {
     var view = camera.view(scratch);
     mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 200.0)
 
-    gl.enable(gl.DEPTH_TEST)
-
-
-    // TODO: we should not have to do this!
-//   bunnyGeo.faces(bunny.cells)
 
 
     shader.bind()
-
-//   bunnyGeo._dirty = true;
-    bunnyGeo.bind(shader)
-    //console.log("lol: ", bunnyGeo._dirty);
-
+  bunnyGeo.bind(shader)
     shader.uniforms.uModel = model
     shader.uniforms.uView = view
     shader.uniforms.uProjection = projection

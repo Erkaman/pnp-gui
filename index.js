@@ -961,166 +961,66 @@ GUI.prototype.begin = function (io, windowTitle) {
 }
 
 GUI.prototype._restoreGLState = function (gl) {
-  //  console.log("restore",  this.lastElementArrayBuffer);
-  /*  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.lastArrayBuffer);
+    gl.useProgram(this.lastProgram);
+    gl.bindTexture(gl.TEXTURE_2D, this.lastTexture);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.lastArrayBuffer)
-
- //   gl.bindVertexArray(gl.VERTEX_ARRAY_BINDING, this.lastVertexArray)
-
-
-    this.my_ext.bindVertexArrayOES(this.lastVAO)
-
-    console.log("HELLO");*/
-
-
-    this._restoreVertexAttrib(gl, 0);
-    this._restoreVertexAttrib(gl, 1);
-    this._restoreVertexAttrib(gl, 2);
-
-    this._restoreVertexAttrib(gl, 3);
-}
-
-//(gl.getVertexAttrib(attribute.location, gl.VERTEX_ATTRIB_ARRAY_ENABLED),
-
-GUI.prototype._backupVertexAttrib = function (gl, index) {
-
-    this.lastVertexAttribEnabled[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-
-    this.lastVertexAttribSize[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_SIZE);
-
-    this.lastVertexAttribType[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_TYPE);
-
-    this.lastVertexAttribNormalized[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
-
-
-
-    this.lastVertexAttribStride[index] = gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_STRIDE);
-
-    this.lastVertexAttribPointer[index] = gl.getVertexAttribOffset(index, gl.VERTEX_ATTRIB_ARRAY_POINTER);
-
-
-
-
-    // console.log("enable", this.lastVertexAttribEnabled[index] );
-}
-
-GUI.prototype._restoreVertexAttrib = function (gl, index) {
-
-    if(this.lastVertexAttribEnabled[index]) {
-        gl.enableVertexAttribArray(index)
-
-        gl.vertexAttribPointer(
-            index,
-            this.lastVertexAttribSize[index],
-            this.lastVertexAttribType[index],
-            this.lastVertexAttribNormalized[index],
-            this.lastVertexAttribStride[index],
-            this.lastVertexAttribPointer[index]);
-
-    }else {
-        gl.disableVertexAttribArray(index)
-    }
-  //  console.log("lol: ", this.lastVertexAttribSize[index]  )
-
+    if(this.lastEnableDepthTest) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
+    if(this.lastEnableBlend) gl.enable(gl.BLEND); else gl.disable(gl.BLEND);
 }
 
 
 GUI.prototype._backupGLState = function (gl) {
 
-    this.lastVertexAttribEnabled = [];
-    this.lastVertexAttribSize = [];
-    this.lastVertexAttribType= [];
-    this.lastVertexAttribNormalized= [];
-    this.lastVertexAttribStride= [];
-    this.lastVertexAttribPointer= [];
-
-
-    this._backupVertexAttrib(gl, 0);
-    this._backupVertexAttrib(gl, 1);
-    this._backupVertexAttrib(gl, 2);
-    this._backupVertexAttrib(gl, 3);
-
-
-    /*
-    var lastProgram = gl.getParameter(gl.CURRENT_PROGRAM);
-
-   // console.log("prog", prog)
-
-  //  gl.getInteger(gl.CURRENT_PROGRAM);
-
+    this.lastProgram = gl.getParameter(gl.CURRENT_PROGRAM);
     this.lastElementArrayBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
     this.lastArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-
-
-    this.my_ext = gl.getExtension('OES_vertex_array_object')
-
-    this.lastVAO = gl.getParameter(this.my_ext.VERTEX_ARRAY_BINDING_OES);
-*/
-  //  console.log("vao", this.lastVAO);
-
-
-
-
-//    this.lastVertexArray = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
-
-    //console.log("ext", this.my_ext );
-
-
-
-    //  GL_VERTEX_ARRAY_BINDING,
-
-
-
-
-   // gl.ELEMENT_ARRAY_BUFFER_BINDING
-
-
-    //glBindBuffer(ELEMENT_ARRAY_BUFFER, last_array_buffer);
-    //this.gl.bindBuffer(this.type, this.handle)
-
+    this.lastTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    this.lastEnableDepthTest = gl.isEnabled(gl.DEPTH_TEST);
+    this.lastEnableBlend = gl.isEnabled(gl.BLEND);
 
     /*
-        GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
-        GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-        GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-        GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
-        GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
-        GLint last_blend_src; glGetIntegerv(GL_BLEND_SRC, &last_blend_src);
-        GLint last_blend_dst; glGetIntegerv(GL_BLEND_DST, &last_blend_dst);
-        GLint last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
-        GLint last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
-        GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
-        GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
-        GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
-        GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
-    */
+    TODO: figure out how to back up `blendFunc`.
+     */
+
 }
 
-var once = false;
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
-    var ext = gl.getExtension('OES_vertex_array_object')
-    ext.bindVertexArrayOES(null)
+    /*
+    If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
+    when calling vertexAttribPointer, which means that we would effectively corrupt the user data!
+     */
+    var VAO_ext = gl.getExtension('OES_vertex_array_object');
+    if(VAO_ext)
+        VAO_ext.bindVertexArrayOES(null);
+
+    /*
+    We are changing some GL states when rendering the GUI. So before rendering we backup these states,
+    and after rendering we restore these states. This is so that the end-user does not involuntarily have his
+    GL-states messed with.
+     */
+    this._backupGLState(gl);
 
 
-    this.positionBufferObject.update(this.positionBuffer)
-    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location)
-    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0)
+    this.positionBufferObject.update(this.positionBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location);
+    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0);
     this.positionBufferObject.unbind();
 
 
-    this.colorBufferObject.update(this.colorBuffer)
-    gl.enableVertexAttribArray(this.shader.attributes.aColor.location)
-    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 3, gl.FLOAT, false, 0, 0)
+    this.colorBufferObject.update(this.colorBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
+    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 3, gl.FLOAT, false, 0, 0);
     this.colorBufferObject.unbind();
 
-    this.uvBufferObject.update(this.uvBuffer)
-    gl.enableVertexAttribArray(this.shader.attributes.aUv.location)
-    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0)
+    this.uvBufferObject.update(this.uvBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aUv.location);
+    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0);
     this.uvBufferObject.unbind();
 
-    this.indexBufferObject.update(this.indexBuffer)
+    this.indexBufferObject.update(this.indexBuffer);
 
 
     /*
@@ -1146,7 +1046,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
 
     gl.disable(gl.BLEND)
-    
+
 
     /*
     Make sure to always reset the active widget id, if mouse is released.
@@ -1158,7 +1058,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
     }
 
 
-  // this._restoreGLState(gl);
+   this._restoreGLState(gl);
 
 }
 
