@@ -26,7 +26,7 @@ function GUI(gl) {
 
 
     // distance from window-borders to the widgets.
-    this.windowSpacing = 19;
+    this.windowSpacing = 14;
 
     // the vertical spacing between the widgets.
     this.widgetSpacing = 11;
@@ -42,7 +42,7 @@ function GUI(gl) {
     // the horizontal space between the slider and its label.
     this.sliderLabelSpacing = 4;
     // the slider is dynamically scaled to occupy this much of the window width.
-    this.sliderWindowRatio = 0.8;
+    this.sliderWindowRatio = 0.6;
     // the color of the slider background.
     this.sliderBackgroundColor = [0.0 ,0.0, 0.0];
     // the color of the bar in the slider.
@@ -55,7 +55,7 @@ function GUI(gl) {
     this.sliderValueNumDecimalDigits =  2;
 
     // the vertical spacing between the three color dragger widgets in the rgbSlider widget.
-    this.rgbSliderWidgetSpacing = 5;
+    this.rgbSliderWidgetSpacing = 3;
     // the horizontal spacing between the top and bottom borders and the text in the color draggers.
     this.colorDraggerSpacing = 5;
 
@@ -496,7 +496,7 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
     this._moveWindowCaret();
 
     var colorDraggerWidth =
-        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - 2*this.colorDraggerSpacing) / 3.0;
+        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - 2*this.rgbSliderWidgetSpacing) / 3.0;
 
     /*
     Red color dragger widget
@@ -515,7 +515,7 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
      */
 
     var gValue = {val: value[1] };
-    position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
+    position =  [result.topRight[0] + this.rgbSliderWidgetSpacing, result.topRight[1]]
     result = this._colorDragger(labelStr, "G:", gValue, this.colorDraggerGreenColor,
         this.colorDraggerGreenColorHover, colorDraggerWidth,  position );
 
@@ -527,7 +527,7 @@ GUI.prototype.rgbDragger = function (labelStr, value) {
      */
 
     var bValue = {val: value[2] };
-    position =  [result.topRight[0] + this.colorDraggerSpacing, result.topRight[1]]
+    position =  [result.topRight[0] + this.rgbSliderWidgetSpacing, result.topRight[1]]
     result = this._colorDragger(labelStr, "B:", bValue, this.colorDraggerBlueColor,
         this.colorDraggerBlueColorHover, colorDraggerWidth,  position );
 
