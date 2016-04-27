@@ -12,10 +12,9 @@ var shell = require("gl-now")();
 var createGui = require("../index.js");
 var cameraPosFromViewMatrix  = require('gl-camera-pos-from-view-matrix');
 var dragon = require('stanford-dragon/3');
-
-var boundingBox = require('vertices-bounding-box')
-var tform = require('geo-3d-transform-mat4')
-
+var boundingBox = require('vertices-bounding-box');
+var tform = require('geo-3d-transform-mat4');
+var randomArray = require('random-array');
 
 var shader,bunnyGeo, dragonGeo;
 
@@ -151,6 +150,14 @@ var specularPower = {val: 4.0};
 var hasSpecular = {val: true};
 var renderModel = {val: RENDER_BUNNY};
 
+function randomize() {
+    bunnyDiffuseColor = randomArray(0,1).oned(3);
+    bunnyAmbientLight = randomArray(0,1).oned(3);
+    bunnyLightColor = randomArray(0,1).oned(3);
+    sunDir = randomArray(-2,+2).oned(3);
+    specularPower.val = Math.round(randomArray(0,40).oned(1)[0]);
+}
+
 shell.on("gl-render", function (t) {
 
     var gl = shell.gl
@@ -228,9 +235,11 @@ shell.on("gl-render", function (t) {
 
     gui.draggerFloat3("Light Direction", sunDir, [ [-2,+2] ], ["X:", "Y:", "Z:"]) ;
 
-    gui.button("Randomize");
+    if(gui.button("Randomize")) {
+        randomize();
+    }
     gui.separator();
-    
+
     gui.textLine("Miscellaneous");
     gui.draggerRgb("Background", bg);
 

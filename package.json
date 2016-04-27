@@ -21,6 +21,7 @@
     "gl-vec3": "^1.0.3",
     "normals": "^1.0.1",
     "orbit-camera": "^1.0.0",
+    "random-array": "0.0.2",
     "stanford-dragon": "^1.1.1",
     "vertices-bounding-box": "^1.0.0"
   },
