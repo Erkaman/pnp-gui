@@ -16,7 +16,7 @@ var boundingBox = require('vertices-bounding-box');
 var tform = require('geo-3d-transform-mat4');
 var randomArray = require('random-array');
 
-var shader,bunnyGeo, dragonGeo;
+var demo1Shader,bunnyGeo, dragonGeo;
 
 var camera = createOrbitCamera(
     [0,-15,0],
@@ -73,20 +73,6 @@ void main() {
     clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
     
     gl_FragColor = vec4(ambient + diffuse + specular*uHasSpecular, 1.0);
-
-/*
-    vec3 rabbitColor = uColor;
-
-    vec3 ambient = 0.7 * rabbitColor;
-
-    float phong = dot(vNormal, vec3(0.71, 0.71, 0) );
-    vec3 diffuse = phong * rabbitColor;
-
-    gl_FragColor = vec4(ambient + diffuse, 1.0);
-    
-    
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    */
 }
 `
 
@@ -117,14 +103,11 @@ shell.on("gl-init", function () {
 
     gui = new createGui(gl)
 
-
-
     centerGeometry(bunny, 1.0);
     bunnyGeo = Geometry(gl)
         .attr('aPosition', bunny.positions)
     .attr('aNormal', normals.vertexNormals(bunny.cells, bunny.positions))
     .faces(bunny.cells)
-
 
     centerGeometry(dragon, 0.2);
     dragonGeo = Geometry(gl)
@@ -132,7 +115,7 @@ shell.on("gl-init", function () {
         .attr('aNormal', normals.vertexNormals(dragon.cells, dragon.positions))
         .faces(dragon.cells)
 
-    shader = glShader(gl, vert, frag)
+    demo1Shader = glShader(gl, vert, frag)
 })
 
 var prev = false;
@@ -142,20 +125,20 @@ const RENDER_DRAGON = 1;
 
 
 var bg = [0.6, 0.7, 1.0];
-var bunnyDiffuseColor = [0.7, 0.7, 0.7];
-var bunnyAmbientLight = [0.3, 0.3, 0.3];
-var bunnyLightColor = [0.4, 0.0, 0.0];
-var sunDir = [0.71, 0.71, 0];
-var specularPower = {val: 4.0};
-var hasSpecular = {val: true};
-var renderModel = {val: RENDER_BUNNY};
+var demo1DiffuseColor = [0.7, 0.7, 0.7];
+var demo1AmbientLight = [0.3, 0.3, 0.3];
+var demo1LightColor = [0.4, 0.0, 0.0];
+var demo1SunDir = [0.71, 0.71, 0];
+var demo1SpecularPower = {val: 4.0};
+var demo1HasSpecular = {val: true};
+var demo1RenderModel = {val: RENDER_BUNNY};
 
 function randomize() {
-    bunnyDiffuseColor = randomArray(0,1).oned(3);
-    bunnyAmbientLight = randomArray(0,1).oned(3);
-    bunnyLightColor = randomArray(0,1).oned(3);
-    sunDir = randomArray(-2,+2).oned(3);
-    specularPower.val = Math.round(randomArray(0,40).oned(1)[0]);
+    demo1DiffuseColor = randomArray(0,1).oned(3);
+    demo1AmbientLight = randomArray(0,1).oned(3);
+    demo1LightColor = randomArray(0,1).oned(3);
+    demo1SunDir = randomArray(-2,+2).oned(3);
+    demo1SpecularPower.val = Math.round(randomArray(0,40).oned(1)[0]);
 }
 
 shell.on("gl-render", function (t) {
@@ -179,26 +162,26 @@ shell.on("gl-render", function (t) {
     mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 200.0);
 
     var scratchVec = vec3.create();
-    shader.bind();
-    shader.uniforms.uView = view;
-    shader.uniforms.uModel = model;
-    shader.uniforms.uProjection = projection;
-    shader.uniforms.uDiffuseColor = bunnyDiffuseColor;
-    shader.uniforms.uAmbientLight = bunnyAmbientLight;
-    shader.uniforms.uLightColor = bunnyLightColor;
-    shader.uniforms.uLightDir = sunDir;
-    shader.uniforms.uEyePos = cameraPosFromViewMatrix( scratchVec, view );
-    shader.uniforms.uSpecularPower= specularPower.val;
-    shader.uniforms.uHasSpecular=  hasSpecular.val ? 1.0 : 0.0;
+    demo1Shader.bind();
+    demo1Shader.uniforms.uView = view;
+    demo1Shader.uniforms.uModel = model;
+    demo1Shader.uniforms.uProjection = projection;
+    demo1Shader.uniforms.uDiffuseColor = demo1DiffuseColor;
+    demo1Shader.uniforms.uAmbientLight = demo1AmbientLight;
+    demo1Shader.uniforms.uLightColor = demo1LightColor;
+    demo1Shader.uniforms.uLightDir = demo1SunDir;
+    demo1Shader.uniforms.uEyePos = cameraPosFromViewMatrix( scratchVec, view );
+    demo1Shader.uniforms.uSpecularPower= demo1SpecularPower.val;
+    demo1Shader.uniforms.uHasSpecular=  demo1HasSpecular.val ? 1.0 : 0.0;
 
     //  var expected = vec3.fromValues(1,2,3);
 
-    if(renderModel.val == RENDER_BUNNY) {
+    if(demo1RenderModel.val == RENDER_BUNNY) {
 
-        bunnyGeo.bind(shader);
+        bunnyGeo.bind(demo1Shader);
         bunnyGeo.draw();
-    } else if(renderModel.val == RENDER_DRAGON) {
-        dragonGeo.bind(shader);
+    } else if(demo1RenderModel.val == RENDER_DRAGON) {
+        dragonGeo.bind(demo1Shader);
         dragonGeo.draw();
     }
 
@@ -221,19 +204,19 @@ shell.on("gl-render", function (t) {
 
     gui.textLine("Demo Settings");
 
-    gui.radioButton("Bunny", renderModel, RENDER_BUNNY);
+    gui.radioButton("Bunny", demo1RenderModel, RENDER_BUNNY);
     gui.sameLine();
-    gui.radioButton("Dragon", renderModel, RENDER_DRAGON);
+    gui.radioButton("Dragon", demo1RenderModel, RENDER_DRAGON);
 
-    gui.draggerRgb("Ambient Light", bunnyAmbientLight);
-    gui.draggerRgb("Diffuse Color", bunnyDiffuseColor);
-    gui.draggerRgb("Light Color", bunnyLightColor);
+    gui.draggerRgb("Ambient Light", demo1AmbientLight);
+    gui.draggerRgb("Diffuse Color", demo1DiffuseColor);
+    gui.draggerRgb("Light Color", demo1LightColor);
 
-    gui.checkbox("Has Specular Lighting", hasSpecular);
-    if(hasSpecular.val)
-       gui.sliderFloat("Specular Power", specularPower, 0, 40);
+    gui.checkbox("Has Specular Lighting", demo1HasSpecular);
+    if(demo1HasSpecular.val)
+       gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
 
-    gui.draggerFloat3("Light Direction", sunDir, [ [-2,+2] ], ["X:", "Y:", "Z:"]) ;
+    gui.draggerFloat3("Light Direction", demo1SunDir, [ [-2,+2] ], ["X:", "Y:", "Z:"]) ;
 
     if(gui.button("Randomize")) {
         randomize();
