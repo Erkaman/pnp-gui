@@ -1,29 +1,60 @@
-var createGeometry = require("gl-geometry");
+/*
+Require dependencies
+ */
 var createShader = require("gl-shader");
 var mat4 = require("gl-mat4");
-var fontInfo = require("./font_info.js");
-var fontAtlas = require("./font_atlas.js");
-var shaders = require("./shaders.js");
 var createTexture = require('gl-texture2d');
 var hashString = require('hash-string');
 var clamp = require('clamp');
 var createBuffer = require('gl-buffer');
 
 /*
+Require resources.
+ */
+var fontInfo = require("./font_info.js");
+var fontAtlas = require("./font_atlas.js");
+var shaders = require("./shaders.js");
+
+/*
  Constructor
  */
 function GUI(gl) {
 
-    this.allGuiGeometry = createGeometry(gl)
     this.shader = createShader(gl, shaders.vert, shaders.frag)
 
+    /*
+    These buffers contain all the geometry data.
+     */
+    this.positionBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.colorBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.uvBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.indexBufferObject = createBuffer(gl , [], gl.ELEMENT_ARRAY_BUFFER, gl.DYNAMIC_DRAW);
 
-    this.positionBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
-    this.colorBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
-    this.uvBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW)
 
-    this.indexBufferObject = createBuffer(gl , [], gl.ELEMENT_ARRAY_BUFFER, gl.DYNAMIC_DRAW)
+    this._setupDefaultSettings();
 
+    this.fontAtlasTexture = createTexture(gl, fontAtlas);
+    this.fontAtlasTexture.magFilter = gl.LINEAR;
+    this.fontAtlasTexture.minFilter = gl.LINEAR;
+
+    this.textScale = 1.0;
+
+    /*
+    Keeps track of the ID of the widget that is currently being pressed down.
+    We need to keep track of this, because otherwise we can't, for instance,  affect the value of a
+    slider while the mouse is OUTSIDE the hitbox of the slider.
+     */
+    this.activeWidgetId = null;
+
+    /*
+    See _moveWindowCaret() for an explanation.
+     */
+    this.sameLineActive = false;
+    this.prevWidgetSizes = null;
+}
+
+
+GUI.prototype._setupDefaultSettings = function (char) {
 
     // distance from window-borders to the widgets.
     this.windowSpacing = 14;
@@ -60,8 +91,8 @@ function GUI(gl) {
     this.colorDraggerSpacing = 5;
 
     /*
-    The colors of the three color draggers in the rgbDragger widgets.
-    "Hover", refers to the color when the dragger is hovered.
+     The colors of the three color draggers in the rgbDragger widgets.
+     "Hover", refers to the color when the dragger is hovered.
      */
     this.colorDraggerRedColor =        [0.3, 0.0, 0.0];
     this.colorDraggerRedColorHover =   [0.4, 0.0, 0.0];
@@ -71,8 +102,8 @@ function GUI(gl) {
     this.colorDraggerBlueColorHover =  [0.0, 0.0, 0.4];
 
     /*
-    the outer color is the color of the box of the checkbox,
-    and the inner color is the color of the actual checkbox.
+     the outer color is the color of the box of the checkbox,
+     and the inner color is the color of the actual checkbox.
      */
     this.checkboxOuterColor = [0.3 ,0.3, 0.3];
     this.checkboxInnerColor = [0.15 ,0.15, 0.15];
@@ -86,36 +117,20 @@ function GUI(gl) {
     this.radioButtonInnerColorHover = [0.20 ,0.20, 0.20];
 
 
+    // position of the window.
     this.windowPosition = [20, 20];
+    // size of the window.
     this.windowSizes = [360, 500];
+    // color of the window.
     this.windowColor = [0.1, 0.1, 0.1];
 
-
+    // the title bar height.
     this.titleBarHeight = 21;
     // spacing between the title bars border, and the window title.
     this.titleBarVerticalSpacing = 6;
+    // the title bar color.
     this.titleBarColor = [0.2, 0.4, 0.7];
 
-
-    this.fontAtlasTexture = createTexture(gl, fontAtlas)
-    this.fontAtlasTexture.magFilter = gl.LINEAR;
-    this.fontAtlasTexture.minFilter = gl.LINEAR;
-
-    this.textScale = 1.0;
-
-    /*
-    Keeps track of the ID of the widget that is currently being pressed down.
-    We need to keep track of this, because otherwise we can't, for instance,  affect the value of a
-    slider while the mouse is OUTSIDE the hitbox of the slider.
-     */
-    this.activeWidgetId = null;
-
-    /*
-    See _moveWindowCaret() for an explanation.
-     */
-    this.sameLineActive = false;
-
-    this.prevWidgetSizes = null;
 
 }
 
@@ -123,25 +138,15 @@ GUI.prototype._getCharDesc = function (char) {
     return fontInfo.chars[char.charCodeAt(0) - 32];
 }
 
-
-/*
- PRIVATE
- */
 GUI.prototype._addIndex = function (index) {
     this.indexBuffer[this.indexBufferIndex++] = index;
 }
 
-/*
- PRIVATE
- */
 GUI.prototype._addPosition = function (position) {
     this.positionBuffer[this.positionBufferIndex++] = position[0];
     this.positionBuffer[this.positionBufferIndex++] = position[1];
 }
 
-/*
- PRIVATE
- */
 GUI.prototype._addColor = function (color) {
     this.colorBuffer[this.colorBufferIndex++] = color[0];
     this.colorBuffer[this.colorBufferIndex++] = color[1];
@@ -273,16 +278,14 @@ GUI.prototype._textCenter = function (p, s, str) {
 Add vertex that only has one color, and does not use a texture.
  */
 GUI.prototype._coloredVertex = function (position, color) {
-
     // at this uv-coordinate, the font atlas is entirely white.
     var whiteUv = [0.95, 0.95];
 
     this._addPosition(position);this._addColor(color);this._addUv(whiteUv);
-
 }
 
 /*
- PRIVATE
+ Render a box.
  */
 GUI.prototype._box = function (position, size, color) {
 
@@ -315,8 +318,6 @@ GUI.prototype._box = function (position, size, color) {
 
 }
 
-/*
- */
 GUI.prototype._unitCircle = function (position, theta, radius) {
     return [position[0] + radius * Math.cos(theta), position[1] + radius * Math.sin(theta)];
 }
@@ -358,10 +359,6 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
     }
 }
 
-/*
-Given a box with position `p`, width `s[0]`, height `[1]`,
-return whether the point with the position `x` is inside the box.
- */
 function _inCircle(p, s, x) {
 
     // circle center
@@ -378,6 +375,11 @@ function _inCircle(p, s, x) {
     return (dist <= radius);
 }
 
+
+/*
+ Given a box with position `p`, width `s[0]`, height `[1]`,
+ return whether the point with the position `x` is inside the box.
+ */
 function _inBox(p, s, x) {
     var minX = p[0];
     var minY = p[1];
@@ -393,8 +395,9 @@ function _inBox(p, s, x) {
 
 
 /*
-After adding a widget, move the window caret to the right of the widget if this.sameLineActive,
+Before adding a widget, move the window caret to the right of the previous widget if this.sameLineActive,
 else start a line.
+you should ALWAYS call this function before adding a new widget.
  */
 GUI.prototype._moveWindowCaret = function(){
 
@@ -417,7 +420,6 @@ GUI.prototype._moveWindowCaret = function(){
 GUI.prototype.sameLine = function(){
     this.sameLineActive = true;
 }
-
 
 GUI.prototype.sliderFloat = function (str, value, min, max) {
     this._slider(str, value, min, max, false);
