@@ -208,27 +208,32 @@ shell.on("gl-render", function (t) {
     gui.begin(io, "Window");
 
 
-    gui.rgbDragger("Background", bg);
+    gui.textLine("Choose a Demo");
+    gui.separator();
+
+
+    gui.textLine("Demo Settings");
 
     gui.radioButton("Bunny", renderModel, RENDER_BUNNY);
     gui.sameLine();
     gui.radioButton("Dragon", renderModel, RENDER_DRAGON);
 
-    // TODO: RENDER LINE HERE.
-
-
-    gui.rgbDragger("Ambient Light", bunnyAmbientLight);
-    gui.rgbDragger("Diffuse Color", bunnyDiffuseColor);
-    gui.rgbDragger("Light Color", bunnyLightColor);
+    gui.draggerRgb("Ambient Light", bunnyAmbientLight);
+    gui.draggerRgb("Diffuse Color", bunnyDiffuseColor);
+    gui.draggerRgb("Light Color", bunnyLightColor);
 
     gui.checkbox("Has Specular Lighting", hasSpecular);
     if(hasSpecular.val)
        gui.sliderFloat("Specular Power", specularPower, 0, 40);
 
-    // TODO: IMPLEMENT CONTROL FOR MOVING LIGHT SOURCE, aND RENDERING LIGHT SOURCE. 
+    gui.draggerFloat3("Light Direction", sunDir, [ [-2,+2] ], ["X:", "Y:", "Z:"]) ;
 
-    // TODO IMPLEMENT.
     gui.button("Randomize");
+    gui.separator();
+    
+    gui.textLine("Miscellaneous");
+    gui.draggerRgb("Background", bg);
+
 
 
     gui.end(gl,  canvas.width, canvas.height);

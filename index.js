@@ -124,6 +124,10 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.radioButtonOuterColorHover = [0.35 ,0.35, 0.35];
     this.radioButtonInnerColorHover = [0.20 ,0.20, 0.20];
 
+    //  the color of a separator.
+    this.separatorColor = [0.4, 0.4, 0.4];
+    // the height of a separator (height of "0") * this.separateHeightRatio
+    this.separateHeightRatio = 0.2;
 
     // position of the window.
     this.windowPosition = [20, 20];
@@ -138,6 +142,8 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.titleBarVerticalSpacing = 6;
     // the title bar color.
     this.titleBarColor = [0.2, 0.4, 0.7];
+
+
 
 
 }
@@ -198,8 +204,12 @@ GUI.prototype._getTextSizes = function (str) {
  */
 GUI.prototype._text = function (position, str) {
 
-    var x = position[0];
-    var y = position[1];
+    /*
+    Make sure to round the position to integer. Otherwise, anti-aliasing causes the text to get blurry,
+    it seems
+     */
+    var x = Math.round(position[0]);
+    var y = Math.round(position[1]);
 
     /*
     Width of a single pixel in the font atlas.
@@ -296,6 +306,7 @@ GUI.prototype._coloredVertex = function (position, color) {
  Render a box.
  */
 GUI.prototype._box = function (position, size, color) {
+
 
     // top-left, bottom-left, top-right, bottom-right corners
     var tl = position;
@@ -561,8 +572,7 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
 
     // width of a single subdragger.
     var draggerWidth =
-        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.draggerWidgetSpacing) / (N);
-
+               (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.draggerWidgetSpacing) / (N);
 
     var nDraggerPosition = this.windowCaret;
     var formerDraggerPosition = { topRight :  nDraggerPosition };
@@ -832,9 +842,7 @@ GUI.prototype.button = function (str) {
 
     this._moveWindowCaret();
 
-
     var widgetId = hashString(str);
-
 
     /*
     BUTTON RENDERING
@@ -900,6 +908,21 @@ GUI.prototype.button = function (str) {
     }
 
     return false;
+}
+
+
+GUI.prototype.separator = function(){
+
+    this._moveWindowCaret();
+
+    var separatorPosition = this.windowCaret;
+    var separatorSizes = [
+        this.windowSizes[0] - 2* this.windowSpacing,
+        this._getTextSizes("0")[1]*0.2 ];
+
+    this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4] );
+
+    this.prevWidgetSizes =(separatorSizes);
 }
 
 
@@ -983,10 +1006,6 @@ GUI.prototype._window = function () {
         [this._getTextSizes(this.windowTitle)[0],   this.titleBarHeight ],
         this.windowTitle);
 
-
-
-
-
     // draw the actual window.
     this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes,
        this.windowColor);
@@ -1030,7 +1049,6 @@ GUI.prototype.begin = function (io, windowTitle) {
     this.positionBufferIndex = 0;
     this.colorBufferIndex = 0;
     this.uvBufferIndex = 0;
-
 
     this.io = io;
 
