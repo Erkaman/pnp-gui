@@ -429,7 +429,7 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
     this._slider(str, value, min, max, true);
 }
 
-GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, colorHover,  width, position) {
+GUI.prototype._dragger = function (labelStr, colorLabelStr, value, color, colorHover, width, position) {
 
     var draggerPosition = position;
     var widgetId = hashString(labelStr+ colorLabelStr);
@@ -442,8 +442,7 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, c
         width,
         this._getTextSizes("0")[1] + 2*this.colorDraggerSpacing
     ];
-
-
+    
     var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
     if (
         mouseCollision &&
@@ -463,8 +462,7 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, c
     /*
      DRAGGER RENDERING
      */
-
-
+    
     var sliderValueStr = colorLabelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
 
 
@@ -493,51 +491,46 @@ GUI.prototype._colorDragger = function (labelStr, colorLabelStr, value, color, c
     };
 }
 
-
 GUI.prototype.rgbDragger = function (labelStr, value) {
     this._moveWindowCaret();
 
-    var colorDraggerWidth =
-        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - 2*this.rgbSliderWidgetSpacing) / 3.0;
+    var N = 3;
+
+    var subLabels= ["R:", "G:", "B:"];
+
+    var draggerWidth =
+        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.rgbSliderWidgetSpacing) / (N);
 
     /*
     Red color dragger widget
      */
 
-    var rValue = {val: value[0] };
     var draggerPosition = this.windowCaret;
-    var position = draggerPosition;
-    var result = this._colorDragger(labelStr, "R:", rValue, this.colorDraggerRedColor ,
-        this.colorDraggerRedColorHover, colorDraggerWidth,  position );
+    var formerDraggerPosition = { topRight :  draggerPosition };
 
-    value[0] = rValue.val;
+    for(var iDragger = 0; iDragger < N; ++iDragger) {
+        var v = {val: value[iDragger] };
 
-    /*
-     Green color dragger widget
-     */
+        position =  [
+            formerDraggerPosition.topRight[0] + this.rgbSliderWidgetSpacing,
+            formerDraggerPosition.topRight[1]]
+        formerDraggerPosition = this._dragger(labelStr, subLabels[iDragger], v, [0.3, 0.3, 0.3],
+            [0.7, 0.7, 0.7], draggerWidth,  position );
 
-    var gValue = {val: value[1] };
-    position =  [result.topRight[0] + this.rgbSliderWidgetSpacing, result.topRight[1]]
-    result = this._colorDragger(labelStr, "G:", gValue, this.colorDraggerGreenColor,
-        this.colorDraggerGreenColorHover, colorDraggerWidth,  position );
+        // update G-value
+        value[iDragger] = v.val;
 
-    // update G-value
-    value[1] = gValue.val;
 
-    /*
-     Blue color dragger widget
-     */
+    }
 
-    var bValue = {val: value[2] };
-    position =  [result.topRight[0] + this.rgbSliderWidgetSpacing, result.topRight[1]]
-    result = this._colorDragger(labelStr, "B:", bValue, this.colorDraggerBlueColor,
-        this.colorDraggerBlueColorHover, colorDraggerWidth,  position );
-
-    // update B-value
-    value[2] = bValue.val;
+    var result = formerDraggerPosition;
 
     // the total size of all the three draggers.
-    var draggerSizes = [result.bottomRight[0] - draggerPosition[0], result.bottomRight[1] - draggerPosition[1]] ;
+    var draggerSizes = [
+        result.bottomRight[0] -
+        draggerPosition[0],
+        result.bottomRight[1] -
+        draggerPosition[1]] ;
 
     var draggerLabelPosition = [draggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, draggerPosition[1]]
     var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0],  draggerSizes[1]  ];

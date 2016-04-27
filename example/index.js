@@ -216,6 +216,7 @@ shell.on("gl-render", function (t) {
 
     // TODO: RENDER LINE HERE.
 
+
     gui.rgbDragger("Ambient Light", bunnyAmbientLight);
     gui.rgbDragger("Diffuse Color", bunnyDiffuseColor);
     gui.rgbDragger("Light Color", bunnyLightColor);
