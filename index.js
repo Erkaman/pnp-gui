@@ -86,20 +86,28 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.sliderValueNumDecimalDigits =  2;
 
     // the vertical spacing between the three color dragger widgets in the rgbSlider widget.
-    this.rgbSliderWidgetSpacing = 3;
+    this.draggerWidgetSpacing = 3;
     // the horizontal spacing between the top and bottom borders and the text in the color draggers.
-    this.colorDraggerSpacing = 5;
+    this.draggerSpacing = 5;
 
     /*
-     The colors of the three color draggers in the rgbDragger widgets.
+     The colors of the three draggers in the rgbDragger widget.
      "Hover", refers to the color when the dragger is hovered.
      */
-    this.colorDraggerRedColor =        [0.3, 0.0, 0.0];
-    this.colorDraggerRedColorHover =   [0.4, 0.0, 0.0];
-    this.colorDraggerGreenColor =      [0.0, 0.3, 0.0];
-    this.colorDraggerGreenColorHover = [0.0, 0.4, 0.0];
-    this.colorDraggerBlueColor =       [0.0, 0.0, 0.3];
-    this.colorDraggerBlueColorHover =  [0.0, 0.0, 0.4];
+    this.draggerRgbRedColor =        [0.3, 0.0, 0.0];
+    this.draggerRgbRedColorHover =   [0.4, 0.0, 0.0];
+    this.draggerRgbGreenColor =      [0.0, 0.3, 0.0];
+    this.draggerRgbGreenColorHover = [0.0, 0.4, 0.0];
+    this.draggerRgbBlueColor =       [0.0, 0.0, 0.3];
+    this.draggerRgbBlueColorHover =  [0.0, 0.0, 0.4];
+
+    /*
+     The colors of the draggers in the draggerFloat widgets.
+     "Hover", refers to the color when the dragger is hovered.
+     */
+    this.draggerFloatColor =        [0.3, 0.3, 0.3];
+    this.draggerFloatColorHover =   [0.7, 0.7, 0.7];
+
 
     /*
      the outer color is the color of the box of the checkbox,
@@ -429,18 +437,15 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
     this._slider(str, value, min, max, true);
 }
 
-GUI.prototype._dragger = function (labelStr, colorLabelStr, value, color, colorHover, width, position) {
+GUI.prototype._draggerFloat = function (
+    widgetId, labelStr, value, color, colorHover, width, position, minVal, maxVal) {
 
     var draggerPosition = position;
-    var widgetId = hashString(labelStr+ colorLabelStr);
 
-    // A color component in RGB is in range [0,1]
-    var min = 0.0;
-    var max = 1.0;
 
     var draggerSizes = [
         width,
-        this._getTextSizes("0")[1] + 2*this.colorDraggerSpacing
+        this._getTextSizes("0")[1] + 2*this.draggerSpacing
     ];
     
     var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
@@ -453,7 +458,7 @@ GUI.prototype._dragger = function (labelStr, colorLabelStr, value, color, colorH
 
     if (this.activeWidgetId == widgetId) {
         value.val += 0.01*(this.io.mousePosition[0] - this.io.mousePositionPrev[0]);
-        value.val = clamp(value.val, min, max);
+        value.val = clamp(value.val, minVal, maxVal);
 
         this.activeWidgetId = widgetId;
 
@@ -463,7 +468,7 @@ GUI.prototype._dragger = function (labelStr, colorLabelStr, value, color, colorH
      DRAGGER RENDERING
      */
     
-    var sliderValueStr = colorLabelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
+    var sliderValueStr = labelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
 
 
     /*
@@ -484,58 +489,118 @@ GUI.prototype._dragger = function (labelStr, colorLabelStr, value, color, colorH
     // render text in slider
     this._textCenter(draggerPosition, draggerSizes, sliderValueStr);
 
-    // return top right corner, and bottom right corner of color dragger.
+    // return top right corner, and bottom right corner of the dragger.
     return {
         topRight   :  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]  ],
         bottomRight:  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]+  draggerSizes[1]  ],
     };
 }
 
-GUI.prototype.rgbDragger = function (labelStr, value) {
+
+
+
+GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
+}
+
+
+GUI.prototype.draggerRgb = function (labelStr, value) {
+    this._draggerFloatN(
+        labelStr, value, 3, [ [0,1] ], ["R:", "G:", "B:"],
+         [
+             [this.draggerRgbRedColor,this.draggerRgbRedColorHover ],
+             [this.draggerRgbGreenColor,this.draggerRgbGreenColorHover ],
+             [this.draggerRgbBlueColor,this.draggerRgbBlueColorHover ]
+         ]);
+}
+
+/*
+sublabels,
+min max, for all n.
+hover color, for all three.
+ */
+GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLabels, colors) {
     this._moveWindowCaret();
 
-    var N = 3;
+    if(!minMaxValues)
+        minMaxValues = [];
 
-    var subLabels= ["R:", "G:", "B:"];
+    if(!subLabels)
+        subLabels = [];
 
-    var draggerWidth =
-        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.rgbSliderWidgetSpacing) / (N);
+    if(!colors)
+        colors = [];
+
+
+    // if minMaxValues only contains a single min-max pair, then that pair becomes the value of the rest
+    // of the min-max pairs.
+    if(minMaxValues.length == 1) {
+        for(var i = 1; i < N; ++i) {
+            minMaxValues[i] =  minMaxValues[0];
+        }
+    }
+
 
     /*
-    Red color dragger widget
+    Set default values.
      */
+    for(var i = 0; i < N; ++i) {
+        if(!subLabels[i]) {
+            subLabels[i] = "";
+        }
 
-    var draggerPosition = this.windowCaret;
-    var formerDraggerPosition = { topRight :  draggerPosition };
+        if(!minMaxValues[i]) {
+            minMaxValues[i] = [-1, 1];
+        }
+
+        if(!colors[i]) {
+            colors[i] = [this.draggerFloatColor, this.draggerFloatColorHover];
+
+        }
+    }
+
+    // width of a single subdragger.
+    var draggerWidth =
+        (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.draggerWidgetSpacing) / (N);
+
+
+    var nDraggerPosition = this.windowCaret;
+    var formerDraggerPosition = { topRight :  nDraggerPosition };
 
     for(var iDragger = 0; iDragger < N; ++iDragger) {
         var v = {val: value[iDragger] };
 
-        position =  [
-            formerDraggerPosition.topRight[0] + this.rgbSliderWidgetSpacing,
-            formerDraggerPosition.topRight[1]]
-        formerDraggerPosition = this._dragger(labelStr, subLabels[iDragger], v, [0.3, 0.3, 0.3],
-            [0.7, 0.7, 0.7], draggerWidth,  position );
+        // first dragger has no spacing in front.
+        var hasFrontSpacing = (iDragger == 0) ? false : true;
 
-        // update G-value
+        var position =  [
+            formerDraggerPosition.topRight[0] + (hasFrontSpacing ? this.draggerWidgetSpacing : 0),
+            formerDraggerPosition.topRight[1]];
+
+
+        var draggerWidgetId = hashString(labelStr+ (iDragger+"") );
+
+        formerDraggerPosition = this._draggerFloat(draggerWidgetId, subLabels[iDragger], v,
+            colors[iDragger][0],
+            colors[iDragger][1]  , draggerWidth,  position,  minMaxValues[iDragger][0] , minMaxValues[iDragger][1] );
+
+        // update value
         value[iDragger] = v.val;
 
 
     }
 
-    var result = formerDraggerPosition;
-
-    // the total size of all the three draggers.
+    // the total size of all the N draggers.
     var draggerSizes = [
-        result.bottomRight[0] -
-        draggerPosition[0],
-        result.bottomRight[1] -
-        draggerPosition[1]] ;
+        formerDraggerPosition.bottomRight[0] -
+        nDraggerPosition[0],
+        formerDraggerPosition.bottomRight[1] -
+        nDraggerPosition[1]] ;
 
-    var draggerLabelPosition = [draggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, draggerPosition[1]]
+    // finally, we place a label after all the draggers.
+    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, nDraggerPosition[1]]
     var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0],  draggerSizes[1]  ];
     this._textCenter(draggerLabelPosition, draggerLabelStrSizes, labelStr);
-
 
     this.prevWidgetSizes = [
 
