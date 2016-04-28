@@ -10,12 +10,15 @@ varying vec3 vPosition;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
+uniform float uHeightScale;
+uniform float uNoiseScale;
+
 
 #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 
 
 float height(vec2 coord) {
- return ( snoise2(vec2(coord.xy)*2.0)) ;
+ return ( snoise2(vec2(coord.xy)*uNoiseScale)) ;
 }
 
 float height(float x, float y) {
@@ -44,12 +47,11 @@ void main() {
   vNormal = getNormal(aPosition.xz);
 
   float horizontalScale = 3000.0;
-  float heightScale = 200.0;
 
   float h = height(aPosition.xz);
   vHeight = h;
 
-  vec3 pos = vec3(horizontalScale, heightScale, horizontalScale)* vec3(aPosition.x,h ,aPosition.z);
+  vec3 pos = vec3(horizontalScale, uHeightScale, horizontalScale)* vec3(aPosition.x,h ,aPosition.z);
     vPosition = pos;
 
   gl_Position = uProjection * uView* vec4(pos, 1.0);

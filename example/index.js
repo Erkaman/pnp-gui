@@ -139,7 +139,7 @@ shell.on("gl-init", function () {
         .faces(dragon.cells)
 
     // 200
-    var plane = createPlane(100);
+    var plane = createPlane(200);
 
     planeGeo = Geometry(gl)
         .attr('aPosition', plane.positions)
@@ -172,24 +172,45 @@ var demo1SpecularPower = {val: 4.0};
 var demo1HasSpecular = {val: true};
 var demo1RenderModel = {val: RENDER_BUNNY};
 
-var demo2AmbientLight = [0.6, 0.6, 0.6];
-var demo2LightColor = [0.7, 0.7, 0.7];
-var demo2SunDir = [0.71, 0.71, 0];
-var demo2SnowColor = [0.8, 0.8, 0.8] ;
-var demo2GrassColor = [0.0, 0.5, 0.0] ;
-var demo2SandColor = [0.8, 0.7, 0.2] ;
+
+
+var demo2AmbientLight = [ 0.85, 0.52, 0.66];
+var demo2LightColor = [ 0.38, 0.44, 0.03];
+var demo2SunDir = [1.35, 0.61, 1.12];
+var demo2SnowColor = [0.6, 0.6, 0.6] ;
+var demo2GrassColor = [0.12, 0.34, 0.12] ;
+var demo2SandColor = [0.50, 0.4, 0.21] ;
+var demo2HeightScale = {val: 200.0 };
+var demo2NoiseScale = {val: 2.0};
+
+
+var demo2TextureNoiseScale = { val:0.3 };
+var demo2TextureNoiseStrength = { val:0.01 };
 
 
 
-
-
-function randomize() {
+function demo1Randomize() {
     demo1DiffuseColor = randomArray(0,1).oned(3);
     demo1AmbientLight = randomArray(0,1).oned(3);
     demo1LightColor = randomArray(0,1).oned(3);
     demo1SunDir = randomArray(-2,+2).oned(3);
     demo1SpecularPower.val = Math.round(randomArray(0,40).oned(1)[0]);
 }
+
+
+function demo2RandomizeLighting() {
+    demo2AmbientLight = randomArray(0,1).oned(3);
+    demo2LightColor = randomArray(0,1).oned(3);
+    demo2SunDir = randomArray(0,+2).oned(3);
+}
+
+function demo2RandomizeColor() {
+    demo2SnowColor = randomArray(0,1).oned(3);
+    demo2GrassColor = randomArray(0,1).oned(3);
+    demo2SandColor = randomArray(0,1).oned(3);
+}
+
+// ();
 
 shell.on("gl-render", function (t) {
 
@@ -252,6 +273,12 @@ shell.on("gl-render", function (t) {
         demo2Shader.uniforms.uGrassColor = demo2GrassColor;
         demo2Shader.uniforms.uSandColor = demo2SandColor;
 
+        demo2Shader.uniforms.uHeightScale = demo2HeightScale.val;
+        demo2Shader.uniforms.uNoiseScale = demo2NoiseScale.val;
+
+        demo2Shader.uniforms.uTextureNoiseScale = demo2TextureNoiseScale.val;
+        demo2Shader.uniforms.uTextureNoiseStrength = demo2TextureNoiseStrength.val;
+
 
         planeGeo.bind(demo2Shader);
         planeGeo.draw();
@@ -299,7 +326,7 @@ shell.on("gl-render", function (t) {
         gui.draggerFloat3("Light Direction", demo1SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
 
         if (gui.button("Randomize")) {
-            randomize();
+            demo1Randomize();
         }
     } else {
 
@@ -307,16 +334,39 @@ shell.on("gl-render", function (t) {
 
         gui.draggerRgb("Ambient Light", demo2AmbientLight);
         gui.draggerRgb("Light Color", demo2LightColor);
+        gui.draggerFloat3("Light Direction", demo2SunDir, [[0, +2]], ["X:", "Y:", "Z:"]);
 
-        gui.draggerFloat3("Light Direction", demo2SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
+
+
+        if (gui.button("Randomize")) {
+            demo2RandomizeLighting();
+        }
+
 
         gui.separator();
 
-        gui.textLine("Heightmap Settings");
+        gui.textLine("Heightmap Geometry");
+
+        gui.sliderFloat("Height Scale", demo2HeightScale, 0, 400 );
+        gui.sliderFloat("Noise Scale", demo2NoiseScale, 0, 20.0 );
+
+        gui.separator();
+
+        gui.textLine("Heightmap Color");
 
         gui.draggerRgb("Snow Color", demo2SnowColor);
         gui.draggerRgb("Grass Color", demo2GrassColor);
         gui.draggerRgb("Sand Color", demo2SandColor);
+
+
+        if (gui.button("Randomize")) {
+            demo2RandomizeColor();
+        }
+
+        gui.sliderFloat("Color Noise Scale", demo2TextureNoiseScale, 0.01, 0.4 );
+        gui.sliderFloat("Color Noise Strength", demo2TextureNoiseStrength, 0.01, 0.2 );
+
+
     }
 
     gui.separator();
