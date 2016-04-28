@@ -267,7 +267,7 @@ GUI.prototype._text = function (position, str) {
         this._addIndex(baseIndex + 0);this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);
 
         // triangle 2
-        this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 3);
+        this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
 
 
 
@@ -333,7 +333,7 @@ GUI.prototype._box = function (position, size, color) {
     this._addIndex(baseIndex + 0);this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);
 
     // triangle 2
-    this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 3);
+    this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
 
 }
 
@@ -373,7 +373,7 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
             var p = this._unitCircle(centerPosition, theta, radius);
             this._coloredVertex(p, color);
 
-            this._addIndex(centerVertexIndex);this._addIndex(curIndex-1);this._addIndex(curIndex+0);
+            this._addIndex(curIndex+0);this._addIndex(curIndex-1);this._addIndex(centerVertexIndex);
         }
     }
 }

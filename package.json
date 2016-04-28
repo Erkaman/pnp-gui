@@ -2,8 +2,9 @@
   "name": "gl-simple-gui",
   "version": "1.0.0",
   "description": "A simple WebGL Gui for debugging purposes.",
+  "main": "index.js",
   "scripts": {
-    "start": "budo --live --verbose --open example/index.js -- -t glslify",
+    "start": "budo --verbose example/index.js -t glslify --live --open",
     "test": "standard"
   },
   "keywords": [
@@ -12,13 +13,15 @@
   "author": "Eric Arnebäck <arnebackeric@gmail.com> (https://github.com/Erkaman)",
   "license": "MIT",
   "devDependencies": {
-    "budo": "^7.1.0",
     "bunny": "^1.0.1",
     "geo-3d-box": "^2.0.2",
     "geo-3d-transform-mat4": "^1.0.0",
     "gl-camera-pos-from-view-matrix": "^1.0.1",
     "gl-now": "^1.4.0",
     "gl-vec3": "^1.0.3",
+    "glsl-noise": "0.0.0",
+    "glsl-random": "0.0.5",
+    "glslify": "^5.0.2",
     "normals": "^1.0.1",
     "orbit-camera": "^1.0.0",
     "random-array": "0.0.2",

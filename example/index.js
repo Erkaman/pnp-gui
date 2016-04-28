@@ -7,6 +7,7 @@ var vec3 = require('gl-vec3');
 var Geometry = require('gl-geometry');
 var glShader = require('gl-shader');
 var normals = require('normals');
+var glslify = require('glslify')
 var createOrbitCamera = require('orbit-camera');
 var shell = require("gl-now")();
 var createGui = require("../index.js");
@@ -16,16 +17,17 @@ var boundingBox = require('vertices-bounding-box');
 var tform = require('geo-3d-transform-mat4');
 var randomArray = require('random-array');
 
-var demo1Shader,bunnyGeo, dragonGeo;
+var demo1Shader, demo2Shader, bunnyGeo, dragonGeo, planeGeo;
 
 var camera = createOrbitCamera(
-    [0,-15,0],
+    //[0,-15,0],
+    [0,-1000,0],
     [0,0,0],
     [0,1,0]
 )
 
 
-const vert = `
+const demo1Vert = `
 precision mediump float;
 
 attribute vec3 aPosition;
@@ -46,7 +48,7 @@ void main() {
 }
 `
 
-const frag = `
+const demo1Frag = `
 precision mediump float;
 
 varying vec3 vNormal;
@@ -96,10 +98,31 @@ function centerGeometry(geo, scale) {
 }
 
 
+function createPlane(n) {
+    var positions = [];
+    var cells = [];
+
+    for(var iy = 0; iy <= n; ++iy) {
+        for(var ix = 0; ix <= n; ++ix) {
+            var x = -1/2 + ix / n;
+            var y =  1/2 - iy / n;
+            positions.push([x, 0, y]);
+            if (iy < n && ix < n) {
+                cells.push([iy * (n+1) + ix + 1 , (iy + 1) * (n+1) + ix + 1, iy * (n+1) + ix]);
+                cells.push([iy * (n+1) + ix, (iy + 1) * (n+1) + ix + 1, (iy+1) * (n+1) + ix ]);
+            }
+        }
+    }
+
+    return {positions: positions, cells: cells};
+}
+
+
 shell.on("gl-init", function () {
     var gl = shell.gl
 
-    gl.enable(gl.DEPTH_TEST)
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
 
     gui = new createGui(gl)
 
@@ -115,16 +138,32 @@ shell.on("gl-init", function () {
         .attr('aNormal', normals.vertexNormals(dragon.cells, dragon.positions))
         .faces(dragon.cells)
 
-    demo1Shader = glShader(gl, vert, frag)
+    // 200
+    var plane = createPlane(100);
+
+    planeGeo = Geometry(gl)
+        .attr('aPosition', plane.positions)
+        .attr('aNormal', normals.vertexNormals(plane.cells, plane.positions))
+        .faces(plane.cells);
+
+    demo1Shader = glShader(gl, demo1Vert, demo1Frag);
+    demo2Shader = glShader(gl,
+        glslify("./demo2Vert.glsl"),
+        glslify("./demo2Frag.glsl"));
+
 })
 
 var prev = false;
 
 const RENDER_BUNNY = 0;
 const RENDER_DRAGON = 1;
+const DEMO_MODEL = 2;
+const DEMO_HEIGHTMAP = 3;
 
 
 var bg = [0.6, 0.7, 1.0];
+var demo = {val: DEMO_HEIGHTMAP};
+
 var demo1DiffuseColor = [0.7, 0.7, 0.7];
 var demo1AmbientLight = [0.3, 0.3, 0.3];
 var demo1LightColor = [0.4, 0.0, 0.0];
@@ -132,6 +171,17 @@ var demo1SunDir = [0.71, 0.71, 0];
 var demo1SpecularPower = {val: 4.0};
 var demo1HasSpecular = {val: true};
 var demo1RenderModel = {val: RENDER_BUNNY};
+
+var demo2AmbientLight = [0.6, 0.6, 0.6];
+var demo2LightColor = [0.7, 0.7, 0.7];
+var demo2SunDir = [0.71, 0.71, 0];
+var demo2SnowColor = [0.8, 0.8, 0.8] ;
+var demo2GrassColor = [0.0, 0.5, 0.0] ;
+var demo2SandColor = [0.8, 0.7, 0.2] ;
+
+
+
+
 
 function randomize() {
     demo1DiffuseColor = randomArray(0,1).oned(3);
@@ -153,38 +203,59 @@ shell.on("gl-render", function (t) {
 
 
     var model = mat4.create();
-   /* mat4.translate(model, model, [0,0,0] );
-    mat4.scale(model, model, [0.1,0.1,0.1] );
-*/
     var projection = mat4.create();
     var scratch = mat4.create();
     var view = camera.view(scratch);
-    mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 200.0);
+    mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 10000.0);
 
     var scratchVec = vec3.create();
-    demo1Shader.bind();
-    demo1Shader.uniforms.uView = view;
-    demo1Shader.uniforms.uModel = model;
-    demo1Shader.uniforms.uProjection = projection;
-    demo1Shader.uniforms.uDiffuseColor = demo1DiffuseColor;
-    demo1Shader.uniforms.uAmbientLight = demo1AmbientLight;
-    demo1Shader.uniforms.uLightColor = demo1LightColor;
-    demo1Shader.uniforms.uLightDir = demo1SunDir;
-    demo1Shader.uniforms.uEyePos = cameraPosFromViewMatrix( scratchVec, view );
-    demo1Shader.uniforms.uSpecularPower= demo1SpecularPower.val;
-    demo1Shader.uniforms.uHasSpecular=  demo1HasSpecular.val ? 1.0 : 0.0;
 
-    //  var expected = vec3.fromValues(1,2,3);
 
-    if(demo1RenderModel.val == RENDER_BUNNY) {
 
-        bunnyGeo.bind(demo1Shader);
-        bunnyGeo.draw();
-    } else if(demo1RenderModel.val == RENDER_DRAGON) {
-        dragonGeo.bind(demo1Shader);
-        dragonGeo.draw();
+    if( demo.val == DEMO_MODEL) {
+
+        demo1Shader.bind();
+
+        demo1Shader.uniforms.uView = view;
+        demo1Shader.uniforms.uModel = model;
+        demo1Shader.uniforms.uProjection = projection;
+        demo1Shader.uniforms.uDiffuseColor = demo1DiffuseColor;
+        demo1Shader.uniforms.uAmbientLight = demo1AmbientLight;
+        demo1Shader.uniforms.uLightColor = demo1LightColor;
+        demo1Shader.uniforms.uLightDir = demo1SunDir;
+        demo1Shader.uniforms.uEyePos = cameraPosFromViewMatrix(scratchVec, view);
+        demo1Shader.uniforms.uSpecularPower = demo1SpecularPower.val;
+        demo1Shader.uniforms.uHasSpecular = demo1HasSpecular.val ? 1.0 : 0.0;
+
+
+        if (demo1RenderModel.val == RENDER_BUNNY) {
+
+            bunnyGeo.bind(demo1Shader);
+            bunnyGeo.draw();
+        } else if (demo1RenderModel.val == RENDER_DRAGON) {
+            dragonGeo.bind(demo1Shader);
+            dragonGeo.draw();
+        }
+
+    } else {
+
+        demo2Shader.bind();
+
+        demo2Shader.uniforms.uView = view;
+        demo2Shader.uniforms.uProjection = projection;
+
+        demo2Shader.uniforms.uAmbientLight = demo2AmbientLight;
+        demo2Shader.uniforms.uLightColor = demo2LightColor;
+        demo2Shader.uniforms.uLightDir = demo2SunDir;
+
+        demo2Shader.uniforms.uSnowColor = demo2SnowColor;
+        demo2Shader.uniforms.uGrassColor = demo2GrassColor;
+        demo2Shader.uniforms.uSandColor = demo2SandColor;
+
+
+        planeGeo.bind(demo2Shader);
+        planeGeo.draw();
     }
-
 
     var pressed = shell.wasDown("mouse-left");
     var io = {
@@ -199,28 +270,55 @@ shell.on("gl-render", function (t) {
 
 
     gui.textLine("Choose a Demo");
+    gui.radioButton("Model", demo, DEMO_MODEL);
+    gui.sameLine();
+    gui.radioButton("Heightmap", demo, DEMO_HEIGHTMAP);
+
+
     gui.separator();
 
 
-    gui.textLine("Demo Settings");
 
-    gui.radioButton("Bunny", demo1RenderModel, RENDER_BUNNY);
-    gui.sameLine();
-    gui.radioButton("Dragon", demo1RenderModel, RENDER_DRAGON);
+    if( demo.val == DEMO_MODEL) {
 
-    gui.draggerRgb("Ambient Light", demo1AmbientLight);
-    gui.draggerRgb("Diffuse Color", demo1DiffuseColor);
-    gui.draggerRgb("Light Color", demo1LightColor);
+        gui.textLine("Lighting Settings");
 
-    gui.checkbox("Has Specular Lighting", demo1HasSpecular);
-    if(demo1HasSpecular.val)
-       gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
 
-    gui.draggerFloat3("Light Direction", demo1SunDir, [ [-2,+2] ], ["X:", "Y:", "Z:"]) ;
+        gui.radioButton("Bunny", demo1RenderModel, RENDER_BUNNY);
+        gui.sameLine();
+        gui.radioButton("Dragon", demo1RenderModel, RENDER_DRAGON);
 
-    if(gui.button("Randomize")) {
-        randomize();
+        gui.draggerRgb("Ambient Light", demo1AmbientLight);
+        gui.draggerRgb("Diffuse Color", demo1DiffuseColor);
+        gui.draggerRgb("Light Color", demo1LightColor);
+
+        gui.checkbox("Has Specular Lighting", demo1HasSpecular);
+        if (demo1HasSpecular.val)
+            gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
+
+        gui.draggerFloat3("Light Direction", demo1SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
+
+        if (gui.button("Randomize")) {
+            randomize();
+        }
+    } else {
+
+        gui.textLine("Lighting Settings");
+
+        gui.draggerRgb("Ambient Light", demo2AmbientLight);
+        gui.draggerRgb("Light Color", demo2LightColor);
+
+        gui.draggerFloat3("Light Direction", demo2SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
+
+        gui.separator();
+
+        gui.textLine("Heightmap Settings");
+
+        gui.draggerRgb("Snow Color", demo2SnowColor);
+        gui.draggerRgb("Grass Color", demo2GrassColor);
+        gui.draggerRgb("Sand Color", demo2SandColor);
     }
+
     gui.separator();
 
     gui.textLine("Miscellaneous");
@@ -243,7 +341,7 @@ shell.on("tick", function() {
             [ (shell.prevMouseX/shell.width-0.5)*speed, (shell.prevMouseY/shell.height-0.5)*speed ])
     }
     if(shell.scroll[1]) {
-        camera.zoom(shell.scroll[1] * 0.1);
+        camera.zoom(shell.scroll[1] * 0.6);
     }
 })
 
