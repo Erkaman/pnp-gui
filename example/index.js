@@ -91,7 +91,6 @@ function centerGeometry(geo, scale) {
     ]
     var m = mat4.create()
     mat4.scale(m, m, [scale, scale, scale])
-
     mat4.translate(m, m, translate)
 
     geo.positions = tform(geo.positions, m)
@@ -128,13 +127,13 @@ shell.on("gl-init", function () {
     gui.windowSizes = [360, 550];
 
 
-    centerGeometry(bunny, 1.0);
+    centerGeometry(bunny, 80.0);
     bunnyGeo = Geometry(gl)
         .attr('aPosition', bunny.positions)
     .attr('aNormal', normals.vertexNormals(bunny.cells, bunny.positions))
     .faces(bunny.cells)
 
-    centerGeometry(dragon, 0.2);
+    centerGeometry(dragon, 16.0);
     dragonGeo = Geometry(gl)
         .attr('aPosition', dragon.positions)
         .attr('aNormal', normals.vertexNormals(dragon.cells, dragon.positions))
@@ -164,7 +163,7 @@ const DEMO_HEIGHTMAP = 3;
 
 
 var bg = [0.6, 0.7, 1.0];
-var demo = {val: DEMO_HEIGHTMAP};
+var demo = {val: DEMO_MODEL};
 
 var demo1DiffuseColor = [0.7, 0.7, 0.7];
 var demo1AmbientLight = [0.3, 0.3, 0.3];
