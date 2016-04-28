@@ -1,2 +1,6 @@
 * several windows.
 * fix so that the font size can be changed without breaking the entire layout.
+* transparent window.
+* Combo box.
+* Text Input.
+* Scrollbar.
