@@ -64,9 +64,9 @@ GUI.prototype._setupDefaultSettings = function (char) {
 
     // the horizontal and vertical spacing between the button border and its text label.
     this.buttonSpacing = 3;
-    this.buttonColor =  [0.5, 0.1, 0.1];
-    this.hoverButtonColor = [0.6, 0.1, 0.1];
-    this.clickButtonColor =  [0.8, 0.1, 0.1];
+    this.buttonColor =  [0.35, 0.1, 0.1];
+    this.hoverButtonColor = [0.40, 0.1, 0.1];
+    this.clickButtonColor =  [0.50, 0.1, 0.1];
 
     // the vertical space between the number and the border of the slider box.
     this.sliderVerticalSpacing = 4;
@@ -75,11 +75,11 @@ GUI.prototype._setupDefaultSettings = function (char) {
     // the slider is dynamically scaled to occupy this much of the window width.
     this.sliderWindowRatio = 0.6;
     // the color of the slider background.
-    this.sliderBackgroundColor = [0.0 ,0.0, 0.0];
+    this.sliderBackgroundColor = [0.16 ,0.16, 0.16];
     // the color of the bar in the slider.
     this.sliderFillColor =  [0.0 ,0.3, 0.7];
     // the color of the slider background when hover,
-    this.sliderBackgroundColorHover = [0.2 ,0.2, 0.2];
+    this.sliderBackgroundColorHover = [0.19 ,0.19, 0.19];
     // the color of the bar in the slider when hover.
     this.sliderFillColorHover =  [0.0 ,0.4, 0.8];
     // the number of decimal digits that the slider value is displayed with.
@@ -95,18 +95,18 @@ GUI.prototype._setupDefaultSettings = function (char) {
      "Hover", refers to the color when the dragger is hovered.
      */
     this.draggerRgbRedColor =        [0.3, 0.0, 0.0];
-    this.draggerRgbRedColorHover =   [0.4, 0.0, 0.0];
+    this.draggerRgbRedColorHover =   [0.35, 0.0, 0.0];
     this.draggerRgbGreenColor =      [0.0, 0.3, 0.0];
-    this.draggerRgbGreenColorHover = [0.0, 0.4, 0.0];
+    this.draggerRgbGreenColorHover = [0.0, 0.35, 0.0];
     this.draggerRgbBlueColor =       [0.0, 0.0, 0.3];
-    this.draggerRgbBlueColorHover =  [0.0, 0.0, 0.4];
+    this.draggerRgbBlueColorHover =  [0.0, 0.0, 0.38];
 
     /*
      The colors of the draggers in the draggerFloat widgets.
      "Hover", refers to the color when the dragger is hovered.
      */
-    this.draggerFloatColor =        [0.3, 0.3, 0.3];
-    this.draggerFloatColorHover =   [0.7, 0.7, 0.7];
+    this.draggerFloatColor =        [0.30, 0.30, 0.30];
+    this.draggerFloatColorHover =   [0.32, 0.32, 0.32];
 
 
     /*
@@ -115,14 +115,14 @@ GUI.prototype._setupDefaultSettings = function (char) {
      */
     this.checkboxOuterColor = [0.3 ,0.3, 0.3];
     this.checkboxInnerColor = [0.15 ,0.15, 0.15];
-    this.checkboxOuterColorHover = [0.35 ,0.35, 0.35];
-    this.checkboxInnerColorHover = [0.20 ,0.20, 0.20];
+    this.checkboxOuterColorHover = [0.33 ,0.33, 0.33];
+    this.checkboxInnerColorHover = [0.18 ,0.18, 0.18];
 
 
     this.radioButtonOuterColor = [0.3 ,0.3, 0.3];
     this.radioButtonInnerColor = [0.15 ,0.15, 0.15];
-    this.radioButtonOuterColorHover = [0.35 ,0.35, 0.35];
-    this.radioButtonInnerColorHover = [0.20 ,0.20, 0.20];
+    this.radioButtonOuterColorHover = [0.33 ,0.33, 0.33];
+    this.radioButtonInnerColorHover = [0.18 ,0.18, 0.18];
 
     //  the color of a separator.
     this.separatorColor = [0.4, 0.4, 0.4];
@@ -143,7 +143,7 @@ GUI.prototype._setupDefaultSettings = function (char) {
     // spacing between the title bars border, and the window title.
     this.titleBarVerticalSpacing = 6;
     // the title bar color.
-    this.titleBarColor = [0.2, 0.4, 0.7];
+    this.titleBarColor = [0.2, 0.4, 0.6];
 
 
 
