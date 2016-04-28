@@ -135,6 +135,8 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.windowSizes = [360, 500];
     // color of the window.
     this.windowColor = [0.1, 0.1, 0.1];
+    // the transparency of the window.
+    this.windowAlpha = 0.9;
 
     // the title bar height.
     this.titleBarHeight = 21;
@@ -165,6 +167,7 @@ GUI.prototype._addColor = function (color) {
     this.colorBuffer[this.colorBufferIndex++] = color[0];
     this.colorBuffer[this.colorBufferIndex++] = color[1];
     this.colorBuffer[this.colorBufferIndex++] = color[2];
+    this.colorBuffer[this.colorBufferIndex++] = color[3];
 }
 
 GUI.prototype._addUv = function (uv) {
@@ -241,7 +244,7 @@ GUI.prototype._text = function (position, str) {
         var t1 = (cd.y1 * iph);
 
         // render text as white.
-        var whiteColor = [1, 1, 1]
+        var whiteColor = [1, 1, 1, 1]
 
 
         /*
@@ -304,9 +307,17 @@ GUI.prototype._coloredVertex = function (position, color) {
 
 /*
  Render a box.
- */
-GUI.prototype._box = function (position, size, color) {
 
+ `color` is a RGB-triplet.
+ the optional `alpha` argument specifies the transparency of the box.
+ default value of `alpha` is 1.0
+ */
+GUI.prototype._box = function (position, size, color, alpha) {
+
+
+    if(typeof alpha === 'undefined') {
+        alpha = 1.0; // default to 1.0
+    }
 
     // top-left, bottom-left, top-right, bottom-right corners
     var tl = position;
@@ -316,17 +327,22 @@ GUI.prototype._box = function (position, size, color) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
+
+
+
+    var c = [color[0], color[1], color[2], alpha];
+
     // vertex 1
-    this._coloredVertex(tl, color);
+    this._coloredVertex(tl, c);
 
     // vertex 2
-    this._coloredVertex(bl, color);
+    this._coloredVertex(bl, c);
 
     // vertex 3
-    this._coloredVertex(tr, color);
+    this._coloredVertex(tr, c);
 
     // vertex 4
-    this._coloredVertex(br, color);
+    this._coloredVertex(br, c);
 
 
     // triangle 1
@@ -356,8 +372,9 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
+    var c = [color[0],color[1],color[2],1.0];
     // center vertex.
-    this._coloredVertex(centerPosition, color);
+    this._coloredVertex(centerPosition, c );
     var centerVertexIndex = baseIndex + 0;
 
 
@@ -368,10 +385,10 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
         // for first frame, we only create one vertex, and no triangles
         if(theta ==0) {
             var p = this._unitCircle(centerPosition, theta, radius);
-            this._coloredVertex(p, color);
+            this._coloredVertex(p, c);
         } else {
             var p = this._unitCircle(centerPosition, theta, radius);
-            this._coloredVertex(p, color);
+            this._coloredVertex(p, c);
 
             this._addIndex(curIndex+0);this._addIndex(curIndex-1);this._addIndex(centerVertexIndex);
         }
@@ -1008,7 +1025,7 @@ GUI.prototype._window = function () {
 
     // draw the actual window.
     this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes,
-       this.windowColor);
+       this.windowColor, this.windowAlpha);
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [
@@ -1109,7 +1126,7 @@ GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
 
     this.colorBufferObject.update(this.colorBuffer);
     gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
-    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 4, gl.FLOAT, false, 0, 0);
     this.colorBufferObject.unbind();
 
     this.uvBufferObject.update(this.uvBuffer);
