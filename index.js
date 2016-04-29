@@ -480,11 +480,11 @@ GUI.prototype._setupDefaultSettings = function (char) {
     // the color of the slider background.
     this.sliderBackgroundColor = [0.16, 0.16, 0.16];
     // the color of the bar in the slider.
-    this.sliderFillColor = [0.0, 0.3, 0.7];
+    this.sliderFillColor = [0.0, 0.3, 0.6];
     // the color of the slider background when mouse hover,
     this.sliderBackgroundColorHover = [0.19, 0.19, 0.19];
     // the color of the bar in the slider when mouse hover.
-    this.sliderFillColorHover = [0.0, 0.4, 0.8];
+    this.sliderFillColorHover = [0.0, 0.3, 0.70];
     // the number of decimal digits that the slider value is displayed with.
     this.sliderValueNumDecimalDigits = 2;
 
