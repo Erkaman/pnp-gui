@@ -113,8 +113,10 @@ GUI.prototype.radioButton = function (labelStr, value, id) {
 
     var zeroHeight = this._getTextSizes("0")[1];
 
-    var innerRadius = (zeroHeight + 2 * 1) / 2;
-    var outerRadius = (zeroHeight + 2 * 4) / 2;
+
+    var innerRadius = (zeroHeight * this.radioButtonInnerRadius);
+    var outerRadius = (zeroHeight * this.radioButtonOuterRadius);
+
 
     var radioButtonPosition = this.windowCaret;
 
@@ -173,8 +175,9 @@ GUI.prototype.checkbox = function (labelStr, value) {
     // than the checkbox.
     var zeroHeight = this._getTextSizes("0")[1];
 
-    var innerSize = zeroHeight + 2 * 2;
-    var outerSize = zeroHeight + 2 * 4;
+
+    var innerSize = zeroHeight * this.checkBoxInnerSizeRatio;
+    var outerSize = zeroHeight * this.checkBoxOuterSizeRatio;
 
     var checkboxPosition = this.windowCaret;
     var checkboxSizes = [outerSize, outerSize];
@@ -518,6 +521,11 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.checkboxInnerColor = [0.15, 0.15, 0.15];
     this.checkboxOuterColorHover = [0.33, 0.33, 0.33];
     this.checkboxInnerColorHover = [0.18, 0.18, 0.18];
+    // size of inner box will be (height of "0")* checkBoxInnerSizeRatio
+    this.checkBoxInnerSizeRatio =  1.4;
+    // size of outer box will be (height of "0")* checkBoxOuterSizeRatio
+    this.checkBoxOuterSizeRatio =  2.0;
+
 
     /*
      radioButton settings
@@ -533,6 +541,12 @@ GUI.prototype._setupDefaultSettings = function (char) {
     // in order to render the radio button, we must triangulate the circles into triangle segments
     // this number is the number of triangle segments.
     this.radioButtonCircleSegments = 9;
+
+    // radius of the inner circle will be (height of "0")* innerRadiusRatio
+    this.radioButtonInnerRadius =  0.6;
+    // radius of the outer circle will be (height of "0")* outerRadiusRatio
+    this.radioButtonOuterRadius =  1.0;
+
 
     /*
     separator settings.
