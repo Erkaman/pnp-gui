@@ -124,7 +124,7 @@ shell.on("gl-init", function () {
     gl.enable(gl.CULL_FACE);
 
     gui = new createGui(gl)
-    gui.windowSizes = [360, 550];
+    gui.windowSizes = [360, 580];
 
 
     centerGeometry(bunny, 80.0);

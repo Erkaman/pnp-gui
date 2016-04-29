@@ -26,36 +26,34 @@ float height(float x, float y) {
 
 vec3 getNormal(vec2 texCoord)
 {
-
   float eps = 1e-5;
   vec3 p = vec3(texCoord.x, 0.0, texCoord.y);
 
-  //eps on x axis.
+  // approximate the derivatives by the method of finite differences.
   vec3 va = vec3(2.0*eps, height(p.x+eps,p.z) - height(p.x-eps,p.z), 0.0 );
-
   vec3 vb = vec3(0.0, height(p.x,p.z+eps) - height(p.x,p.z-eps), 2.0*eps );
 
-  // is there not some more optimal way of doing this?
-  // http://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
-  vec3 n = normalize(cross(normalize(vb), normalize(va) ));
-
-  return(n);
+  return normalize(cross(normalize(vb), normalize(va) ));
 }
 
 void main() {
+  // compute normal, based on the noise.
   vNormal = getNormal(aPosition.xz);
+
+  float h = height(aPosition.xz);
+
+  // output height.
+  vHeight = h;
 
   float horizontalScale = 3000.0;
 
-  float h = height(aPosition.xz);
-  vHeight = h;
-
+  // now use the height value to modify the originally flat plane.
   vec3 pos =
     100.0 * vec3(uPosition.x, 0.0, uPosition.y) +
     vec3(horizontalScale, uHeightScale, horizontalScale)* vec3(aPosition.x,h ,aPosition.z);
 
+  // output pos.
   vPosition = pos;
-
   gl_Position = uProjection * uView* vec4(pos, 1.0);
 
 // vNormal = (vec3(height(aPosition.xz)*0.5 + 0.5));
