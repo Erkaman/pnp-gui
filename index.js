@@ -73,7 +73,6 @@ GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels
     this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
 };
 
-
 GUI.prototype.draggerRgb = function (labelStr, value) {
     this._draggerFloatN(
         labelStr, value, 3, [[0, 1]], ["R:", "G:", "B:"],
@@ -138,7 +137,7 @@ GUI.prototype.radioButton = function (labelStr, value, id) {
 
 
     // now render radio button label.
-    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelSpacing, radioButtonPosition[1]]
+    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelHorizontalSpacing, radioButtonPosition[1]]
     var labelStrSizes = [this._getTextSizes(labelStr)[0], radioButtonSizes[1]];
     this._textCenter(labelPosition, labelStrSizes, labelStr);
 
@@ -198,7 +197,7 @@ GUI.prototype.checkbox = function (labelStr, value) {
     }
 
     // now render checkbox label.
-    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
+    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelHorizontalSpacing, checkboxPosition[1]]
     var labelStrSizes = [this._getTextSizes(labelStr)[0], checkboxSizes[1]];
     this._textCenter(labelPosition, labelStrSizes, labelStr);
 
@@ -416,81 +415,15 @@ GUI.prototype.hasMouseFocus = function () {
 
 GUI.prototype._setupDefaultSettings = function (char) {
 
+    /*
+    window
+     */
+
     // distance from window-borders to the widgets.
     this.windowSpacing = 14;
 
-    // the vertical spacing between the widgets.
+    // the vertical and horizontal spacing between the widgets.
     this.widgetSpacing = 11;
-
-    // the horizontal and vertical spacing between the button border and its text label.
-    this.buttonSpacing = 3;
-    this.buttonColor = [0.35, 0.1, 0.1];
-    this.hoverButtonColor = [0.40, 0.1, 0.1];
-    this.clickButtonColor = [0.50, 0.1, 0.1];
-
-    // the vertical space between the number and the border of the slider box.
-    this.sliderVerticalSpacing = 4;
-    // the horizontal space between the slider and its label.
-    this.sliderLabelSpacing = 4;
-    // the slider is dynamically scaled to occupy this much of the window width.
-    this.sliderWindowRatio = 0.6;
-    // the color of the slider background.
-    this.sliderBackgroundColor = [0.16, 0.16, 0.16];
-    // the color of the bar in the slider.
-    this.sliderFillColor = [0.0, 0.3, 0.7];
-    // the color of the slider background when hover,
-    this.sliderBackgroundColorHover = [0.19, 0.19, 0.19];
-    // the color of the bar in the slider when hover.
-    this.sliderFillColorHover = [0.0, 0.4, 0.8];
-    // the number of decimal digits that the slider value is displayed with.
-    this.sliderValueNumDecimalDigits = 2;
-
-    // the vertical spacing between the three color dragger widgets in the rgbSlider widget.
-    this.draggerWidgetSpacing = 3;
-    // the horizontal spacing between the top and bottom borders and the text in the color draggers.
-    this.draggerSpacing = 5;
-
-    /*
-     The colors of the three draggers in the rgbDragger widget.
-     "Hover", refers to the color when the dragger is hovered.
-     */
-    this.draggerRgbRedColor = [0.3, 0.0, 0.0];
-    this.draggerRgbRedColorHover = [0.35, 0.0, 0.0];
-    this.draggerRgbGreenColor = [0.0, 0.3, 0.0];
-    this.draggerRgbGreenColorHover = [0.0, 0.35, 0.0];
-    this.draggerRgbBlueColor = [0.0, 0.0, 0.3];
-    this.draggerRgbBlueColorHover = [0.0, 0.0, 0.38];
-
-    /*
-     The colors of the draggers in the draggerFloat widgets.
-     "Hover", refers to the color when the dragger is hovered.
-     */
-    this.draggerFloatColor = [0.30, 0.30, 0.30];
-    this.draggerFloatColorHover = [0.32, 0.32, 0.32];
-
-
-    /*
-     the outer color is the color of the box of the checkbox,
-     and the inner color is the color of the actual checkbox.
-     */
-    this.checkboxOuterColor = [0.3, 0.3, 0.3];
-    this.checkboxInnerColor = [0.15, 0.15, 0.15];
-    this.checkboxOuterColorHover = [0.33, 0.33, 0.33];
-    this.checkboxInnerColorHover = [0.18, 0.18, 0.18];
-
-
-    this.radioButtonOuterColor = [0.3, 0.3, 0.3];
-    this.radioButtonInnerColor = [0.15, 0.15, 0.15];
-    this.radioButtonOuterColorHover = [0.33, 0.33, 0.33];
-    this.radioButtonInnerColorHover = [0.18, 0.18, 0.18];
-    // in order to render the radio button, we must triangulate the circles into triangle segments
-    // this number is the number of triangle segments.
-    this.radioButtonCircleSegments = 9;
-
-    //  the color of a separator.
-    this.separatorColor = [0.4, 0.4, 0.4];
-    // the height of a separator (height of "0") * this.separateHeightRatio
-    this.separateHeightRatio = 0.2;
 
     // position of the window.
     this.windowPosition = [20, 20];
@@ -507,6 +440,99 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.titleBarVerticalSpacing = 6;
     // the title bar color.
     this.titleBarColor = [0.2, 0.4, 0.6];
+
+
+    /*
+    button
+     */
+
+    // the horizontal and vertical spacing between the button border and its text label.
+    this.buttonSpacing = 3;
+    // normal button color.
+    this.buttonColor = [0.35, 0.1, 0.1];
+    // button button color when mouse hover
+    this.hoverButtonColor = [0.40, 0.1, 0.1];
+    // button color when mouse click.
+    this.clickButtonColor = [0.50, 0.1, 0.1];
+
+    /*
+    slider
+     */
+
+    // the vertical space between the number(inside the slider) and the border of the slider box.
+    this.sliderVerticalSpacing = 4;
+    // the horizontal space between the slider and its label.
+    this.sliderLabelHorizontalSpacing = 4;
+    // the slider is dynamically scaled to occupy this much of the window width.
+    this.sliderWindowRatio = 0.6;
+    // the color of the slider background.
+    this.sliderBackgroundColor = [0.16, 0.16, 0.16];
+    // the color of the bar in the slider.
+    this.sliderFillColor = [0.0, 0.3, 0.7];
+    // the color of the slider background when mouse hover,
+    this.sliderBackgroundColorHover = [0.19, 0.19, 0.19];
+    // the color of the bar in the slider when mouse hover.
+    this.sliderFillColorHover = [0.0, 0.4, 0.8];
+    // the number of decimal digits that the slider value is displayed with.
+    this.sliderValueNumDecimalDigits = 2;
+
+    /*
+    dragger
+     */
+
+    // the horizontal spacing between the subdragger widgets in a dragger widget.
+    this.draggerWidgetHorizontalSpacing = 3;
+    // the vertical spacing between the top and bottom borders and the text in draggers.
+    this.draggerVerticalSpacing = 5;
+
+    // The colors of the three subdraggers in the rgbDragger widget.
+    // "Hover", refers to the color when the dragger is hovered.
+    this.draggerRgbRedColor = [0.3, 0.0, 0.0];
+    this.draggerRgbRedColorHover = [0.35, 0.0, 0.0];
+    this.draggerRgbGreenColor = [0.0, 0.3, 0.0];
+    this.draggerRgbGreenColorHover = [0.0, 0.35, 0.0];
+    this.draggerRgbBlueColor = [0.0, 0.0, 0.3];
+    this.draggerRgbBlueColorHover = [0.0, 0.0, 0.38];
+    //The colors of the subdraggers in the draggerFloat widgets.
+    // "Hover", refers to the color when the dragger is hovered.
+    this.draggerFloatColor = [0.30, 0.30, 0.30];
+    this.draggerFloatColorHover = [0.32, 0.32, 0.32];
+
+    /*
+    checkbox
+     */
+
+    /*
+     the outer color is the color of the outer box of the checkbox,
+     and the inner color is the color of the inner box
+     */
+    this.checkboxOuterColor = [0.3, 0.3, 0.3];
+    this.checkboxInnerColor = [0.15, 0.15, 0.15];
+    this.checkboxOuterColorHover = [0.33, 0.33, 0.33];
+    this.checkboxInnerColorHover = [0.18, 0.18, 0.18];
+
+    /*
+     the outer color is the color of the outer circle of the radioButton,
+     and the inner color is the color of the inner circle
+     */
+
+    this.radioButtonOuterColor = [0.3, 0.3, 0.3];
+    this.radioButtonInnerColor = [0.15, 0.15, 0.15];
+    this.radioButtonOuterColorHover = [0.33, 0.33, 0.33];
+    this.radioButtonInnerColorHover = [0.18, 0.18, 0.18];
+    // in order to render the radio button, we must triangulate the circles into triangle segments
+    // this number is the number of triangle segments.
+    this.radioButtonCircleSegments = 9;
+
+    /*
+    separator.
+     */
+
+    //  the color of a separator.
+    this.separatorColor = [0.4, 0.4, 0.4];
+    // the height of a separator (height of "0") * this.separatorHeightRatio
+    this.separatorHeightRatio = 0.2;
+
 };
 
 GUI.prototype._getCharDesc = function (char) {
@@ -834,7 +860,7 @@ GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorH
 
     var draggerSizes = [
         width,
-        this._getTextSizes("0")[1] + 2 * this.draggerSpacing
+        this._getTextSizes("0")[1] + 2 * this.draggerVerticalSpacing
     ];
 
     var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
@@ -931,7 +957,7 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
 
     // width of a single subdragger.
     var draggerWidth =
-        (((this.windowSizes[0] - 2 * this.windowSpacing) * (this.sliderWindowRatio)) - (N - 1) * this.draggerWidgetSpacing) / (N);
+        (((this.windowSizes[0] - 2 * this.windowSpacing) * (this.sliderWindowRatio)) - (N - 1) * this.draggerWidgetHorizontalSpacing) / (N);
 
     var nDraggerPosition = this.windowCaret;
     var formerDraggerPosition = {topRight: nDraggerPosition};
@@ -943,7 +969,7 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         var hasFrontSpacing = (iDragger == 0) ? false : true;
 
         var position = [
-            formerDraggerPosition.topRight[0] + (hasFrontSpacing ? this.draggerWidgetSpacing : 0),
+            formerDraggerPosition.topRight[0] + (hasFrontSpacing ? this.draggerWidgetHorizontalSpacing : 0),
             formerDraggerPosition.topRight[1]];
 
         // make sure each subdragger has an unique widget-ID.
@@ -967,13 +993,13 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         nDraggerPosition[1]];
 
     // finally, we place a label after all the draggers.
-    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, nDraggerPosition[1]]
+    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.sliderLabelHorizontalSpacing, nDraggerPosition[1]]
     var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0], draggerSizes[1]];
     this._textCenter(draggerLabelPosition, draggerLabelStrSizes, labelStr);
 
     this.prevWidgetSizes = [
 
-        draggerSizes[0] + this.sliderLabelSpacing + draggerLabelStrSizes[0],
+        draggerSizes[0] + this.sliderLabelHorizontalSpacing + draggerLabelStrSizes[0],
         draggerSizes[1]];
 }
 
@@ -1064,7 +1090,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     this._textCenter(sliderPosition, sliderSizes, sliderValueStr);
 
     // now render slider label.
-    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
+    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelHorizontalSpacing, sliderPosition[1]]
     var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0], sliderSizes[1]];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
