@@ -137,7 +137,7 @@ GUI.prototype.radioButton = function (labelStr, value, id) {
 
 
     // now render radio button label.
-    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelHorizontalSpacing, radioButtonPosition[1]]
+    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.widgetLabelHorizontalSpacing, radioButtonPosition[1]]
     var labelStrSizes = [this._getTextSizes(labelStr)[0], radioButtonSizes[1]];
     this._textCenter(labelPosition, labelStrSizes, labelStr);
 
@@ -197,7 +197,7 @@ GUI.prototype.checkbox = function (labelStr, value) {
     }
 
     // now render checkbox label.
-    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelHorizontalSpacing, checkboxPosition[1]]
+    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.widgetLabelHorizontalSpacing, checkboxPosition[1]]
     var labelStrSizes = [this._getTextSizes(labelStr)[0], checkboxSizes[1]];
     this._textCenter(labelPosition, labelStrSizes, labelStr);
 
@@ -416,7 +416,7 @@ GUI.prototype.hasMouseFocus = function () {
 GUI.prototype._setupDefaultSettings = function (char) {
 
     /*
-    window
+    window settings
      */
 
     // distance from window-borders to the widgets.
@@ -443,7 +443,7 @@ GUI.prototype._setupDefaultSettings = function (char) {
 
 
     /*
-    button
+    button settings
      */
 
     // the horizontal and vertical spacing between the button border and its text label.
@@ -456,15 +456,11 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.clickButtonColor = [0.50, 0.1, 0.1];
 
     /*
-    slider
+    slider settings
      */
 
     // the vertical space between the number(inside the slider) and the border of the slider box.
     this.sliderVerticalSpacing = 4;
-    // the horizontal space between the slider and its label.
-    this.sliderLabelHorizontalSpacing = 4;
-    // the slider is dynamically scaled to occupy this much of the window width.
-    this.sliderWindowRatio = 0.6;
     // the color of the slider background.
     this.sliderBackgroundColor = [0.16, 0.16, 0.16];
     // the color of the bar in the slider.
@@ -477,7 +473,7 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.sliderValueNumDecimalDigits = 2;
 
     /*
-    dragger
+    dragger settings
      */
 
     // the horizontal spacing between the subdragger widgets in a dragger widget.
@@ -499,23 +495,24 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.draggerFloatColorHover = [0.32, 0.32, 0.32];
 
     /*
-    checkbox
+    checkbox settings
      */
 
-    /*
-     the outer color is the color of the outer box of the checkbox,
-     and the inner color is the color of the inner box
-     */
+
+    // the outer color is the color of the outer box of the checkbox,
+    // and the inner color is the color of the inner box
     this.checkboxOuterColor = [0.3, 0.3, 0.3];
     this.checkboxInnerColor = [0.15, 0.15, 0.15];
     this.checkboxOuterColorHover = [0.33, 0.33, 0.33];
     this.checkboxInnerColorHover = [0.18, 0.18, 0.18];
 
     /*
-     the outer color is the color of the outer circle of the radioButton,
-     and the inner color is the color of the inner circle
+     radioButton settings
      */
 
+
+    // the outer color is the color of the outer circle of the radioButton,
+    // and the inner color is the color of the inner circle
     this.radioButtonOuterColor = [0.3, 0.3, 0.3];
     this.radioButtonInnerColor = [0.15, 0.15, 0.15];
     this.radioButtonOuterColorHover = [0.33, 0.33, 0.33];
@@ -525,7 +522,7 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.radioButtonCircleSegments = 9;
 
     /*
-    separator.
+    separator settings.
      */
 
     //  the color of a separator.
@@ -533,6 +530,17 @@ GUI.prototype._setupDefaultSettings = function (char) {
     // the height of a separator (height of "0") * this.separatorHeightRatio
     this.separatorHeightRatio = 0.2;
 
+    /*
+    general settings
+     */
+
+    // Some widgets render a label in addition to themselves(such as the sliders and draggers)
+    // this value is the horizontal spacing between the label and the widget for those widgets.
+    this.widgetLabelHorizontalSpacing = 4;
+
+    // Some widgets will grow horizontally as the window size increases. They are grown to occupy this
+    // ratio of the total window width.
+    this.widgetHorizontalGrowRatio = 0.6;
 };
 
 GUI.prototype._getCharDesc = function (char) {
@@ -957,7 +965,7 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
 
     // width of a single subdragger.
     var draggerWidth =
-        (((this.windowSizes[0] - 2 * this.windowSpacing) * (this.sliderWindowRatio)) - (N - 1) * this.draggerWidgetHorizontalSpacing) / (N);
+        (((this.windowSizes[0] - 2 * this.windowSpacing) * (this.widgetHorizontalGrowRatio)) - (N - 1) * this.draggerWidgetHorizontalSpacing) / (N);
 
     var nDraggerPosition = this.windowCaret;
     var formerDraggerPosition = {topRight: nDraggerPosition};
@@ -993,13 +1001,13 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         nDraggerPosition[1]];
 
     // finally, we place a label after all the draggers.
-    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.sliderLabelHorizontalSpacing, nDraggerPosition[1]]
+    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.widgetLabelHorizontalSpacing, nDraggerPosition[1]]
     var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0], draggerSizes[1]];
     this._textCenter(draggerLabelPosition, draggerLabelStrSizes, labelStr);
 
     this.prevWidgetSizes = [
 
-        draggerSizes[0] + this.sliderLabelHorizontalSpacing + draggerLabelStrSizes[0],
+        draggerSizes[0] + this.widgetLabelHorizontalSpacing + draggerLabelStrSizes[0],
         draggerSizes[1]];
 }
 
@@ -1018,7 +1026,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     // (since all digits have equal height in our font).
     // * also, we dynamically determine the slider width, based on the window width.
     var sliderSizes = [
-        (this.windowSizes[0] - 2 * this.windowSpacing) * this.sliderWindowRatio,
+        (this.windowSizes[0] - 2 * this.windowSpacing) * this.widgetHorizontalGrowRatio,
         this._getTextSizes("0")[1] + 2 * this.sliderVerticalSpacing
     ];
 
@@ -1090,7 +1098,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     this._textCenter(sliderPosition, sliderSizes, sliderValueStr);
 
     // now render slider label.
-    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelHorizontalSpacing, sliderPosition[1]]
+    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.widgetLabelHorizontalSpacing, sliderPosition[1]]
     var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0], sliderSizes[1]];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
