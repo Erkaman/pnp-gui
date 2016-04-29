@@ -20,7 +20,10 @@ var shaders = require("./shaders.js");
  */
 function GUI(gl) {
 
-    this.shader = createShader(gl, shaders.vert, shaders.frag)
+    /*
+    We use this single shader to render the GUI. 
+     */
+    this.shader = createShader(gl, shaders.vert, shaders.frag);
 
     /*
     These buffers contain all the geometry data.
@@ -51,6 +54,370 @@ function GUI(gl) {
      */
     this.sameLineActive = false;
     this.prevWidgetSizes = null;
+}
+
+
+GUI.prototype.sameLine = function(){
+    this.sameLineActive = true;
+};
+
+GUI.prototype.sliderFloat = function (str, value, min, max) {
+    this._slider(str, value, min, max, false);
+};
+
+GUI.prototype.sliderInt = function (str, value, min, max) {
+    this._slider(str, value, min, max, true);
+};
+
+GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
+};
+
+
+GUI.prototype.draggerRgb = function (labelStr, value) {
+    this._draggerFloatN(
+        labelStr, value, 3, [ [0,1] ], ["R:", "G:", "B:"],
+        [
+            [this.draggerRgbRedColor,this.draggerRgbRedColorHover ],
+            [this.draggerRgbGreenColor,this.draggerRgbGreenColorHover ],
+            [this.draggerRgbBlueColor,this.draggerRgbBlueColorHover ]
+        ]);
+};
+
+
+/*
+ If value.val == id, then that means this radio button is chosen.
+ */
+GUI.prototype.radioButton= function (labelStr, value, id) {
+
+    this._moveWindowCaret();
+
+    /*
+     Radio button IO
+     */
+
+
+    var zeroHeight = this._getTextSizes("0")[1];
+
+    var innerRadius = (zeroHeight + 2 * 1) / 2;
+    var outerRadius = (zeroHeight + 2 * 4) / 2;
+
+    var radioButtonPosition = this.windowCaret;
+
+
+    var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
+
+    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
+
+
+    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
+        value.val = id;
+    }
+
+    var isHover = mouseCollision;
+
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    this._circle(radioButtonPosition, radioButtonSizes,
+        isHover ? this.radioButtonOuterColorHover : this.radioButtonOuterColor, 16);
+
+
+    if (value.val == id) {
+        var p = radioButtonPosition;
+        var s = radioButtonSizes;
+        var innerCirclePosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerRadius * 2 )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerRadius * 2 )),
+        ];
+
+        this._circle(innerCirclePosition, [innerRadius * 2, innerRadius * 2],
+            isHover ? this.radioButtonInnerColorHover : this.radioButtonInnerColor, 16);
+    }
+
+
+    // now render radio button label.
+    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelSpacing, radioButtonPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0],  radioButtonSizes[1]  ];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+    this.prevWidgetSizes = [radioButtonSizes[0] + labelStrSizes[0], radioButtonSizes[1]  ];
+}
+
+
+
+
+GUI.prototype.checkbox= function (labelStr, value) {
+
+    this._moveWindowCaret();
+
+    /*
+     CHECKBOX IO(if checkbox clicked, flip boolean value.)
+     */
+
+    // use height of zero to determine size of checkbox, to ensure that the textl label does become higher
+    // than the checkbox.
+    var zeroHeight = this._getTextSizes("0")[1];
+
+    var innerSize = zeroHeight + 2*2;
+    var outerSize = zeroHeight + 2*4;
+
+    var checkboxPosition = this.windowCaret;
+    var checkboxSizes = [outerSize, outerSize];
+
+    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
+
+    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
+        value.val = !value.val;
+    }
+
+    var isHover = mouseCollision;
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    // render outer box.
+    this._box(
+        checkboxPosition,
+        checkboxSizes, isHover ?  this.checkboxOuterColorHover :  this.checkboxOuterColor);
+
+
+    // now render a centered inner box, that shows whether the checkbox is true, or false.
+
+    if(value.val) {
+        var p = checkboxPosition;
+        var s = checkboxSizes;
+        var innerboxPosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerSize )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerSize )),
+        ];
+
+        this._box(
+            innerboxPosition,
+            [innerSize, innerSize], isHover ? this.checkboxInnerColorHover : this.checkboxInnerColor);
+    }
+
+    // now render checkbox label.
+    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0],  checkboxSizes[1]  ];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+    this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0],checkboxSizes[1]  ];
+}
+
+
+GUI.prototype.button = function (str) {
+
+    this._moveWindowCaret();
+
+    var widgetId = hashString(str);
+
+    /*
+     BUTTON RENDERING
+     */
+
+    var buttonPosition = this.windowCaret;
+
+    var textSizes = this._getTextSizes(str);
+
+    // button size is text size, plus the spacing around the text.
+    var buttonSizes = [
+        textSizes[0] + this.buttonSpacing * 2,
+        textSizes[1] + this.buttonSpacing * 2
+    ];
+
+    var color;
+    var isButtonClick = false;
+
+    // we can only hover or click, when are not interacting with some other widget.
+    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
+
+        if(this.io.mouseLeftDownPrev  && !this.io.mouseLeftDownCur ) {
+
+            isButtonClick = true;
+            color = this.clickButtonColor;
+        } else if(this.io.mouseLeftDownCur ) {
+
+            color = this.clickButtonColor;
+            this.activeWidgetId = widgetId;
+        } else {
+            color = this.hoverButtonColor;
+        }
+
+
+    } else {
+        color =  this.buttonColor
+    }
+
+    this._box(
+        buttonPosition,
+        buttonSizes, color)
+
+    // Render button text.
+    this._text([buttonPosition[0] + this.buttonSpacing,
+        buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
+
+
+
+    // move down window caret.
+
+    this.prevWidgetSizes =(buttonSizes);
+
+
+    /*
+     BUTTON IO
+     If button is pressed, return true;
+     Otherwise, return false.
+     */
+
+
+    if(isButtonClick){
+        return true; // button press!
+    }
+
+    return false;
+}
+
+
+GUI.prototype.separator = function(){
+
+    this._moveWindowCaret();
+
+    var separatorPosition = this.windowCaret;
+    var separatorSizes = [
+        this.windowSizes[0] - 2* this.windowSpacing,
+        this._getTextSizes("0")[1]*0.2 ];
+
+    this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4] );
+
+    this.prevWidgetSizes =(separatorSizes);
+}
+
+
+GUI.prototype.textLine = function (str) {
+
+    this._moveWindowCaret();
+
+    var textLinePosition = this.windowCaret;
+
+    var textSizes = this._getTextSizes(str);
+
+    // Render button text.
+    this._textCenter(textLinePosition, textSizes, str);
+
+    this.prevWidgetSizes = textSizes;
+
+}
+
+
+
+GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
+
+    /*
+     If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
+     when calling vertexAttribPointer, which means that we would effectively corrupt the user data!
+     */
+    var VAO_ext = gl.getExtension('OES_vertex_array_object');
+    if(VAO_ext)
+        VAO_ext.bindVertexArrayOES(null);
+
+    /*
+     We are changing some GL states when rendering the GUI. So before rendering we backup these states,
+     and after rendering we restore these states. This is so that the end-user does not involuntarily have his
+     GL-states messed with.
+     */
+    this._backupGLState(gl);
+
+
+    this.positionBufferObject.update(this.positionBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location);
+    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0);
+    this.positionBufferObject.unbind();
+
+
+    this.colorBufferObject.update(this.colorBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
+    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 4, gl.FLOAT, false, 0, 0);
+    this.colorBufferObject.unbind();
+
+    this.uvBufferObject.update(this.uvBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aUv.location);
+    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0);
+    this.uvBufferObject.unbind();
+
+    this.indexBufferObject.update(this.indexBuffer);
+
+
+    /*
+     Setup matrices.
+     */
+    var projection = mat4.create()
+    mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
+
+    this.shader.bind()
+
+    this.shader.uniforms.uProj = projection;
+    this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
+
+    gl.disable(gl.DEPTH_TEST) // no depth testing; we handle this by manually placing out
+    // widgets in the order we wish them to be rendered.
+
+
+    // for text rendering, enable alpha blending.
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+    gl.drawElements(gl.TRIANGLES, (this.indexBufferIndex), gl.UNSIGNED_SHORT, 0);
+
+    gl.disable(gl.BLEND);
+
+
+    /*
+     Make sure to always reset the active widget id, if mouse is released.
+     This makes sure that every widget does not explicitly have to reset this value
+     by themselves, which is a bit error-prone.
+     */
+    if(this.activeWidgetId != null && this.io.mouseLeftDownCur == false ) {
+        this.activeWidgetId = null;
+    }
+
+
+    this._restoreGLState(gl);
+
+};
+
+
+/*
+ Mouse has focus EITHER when the mouse is inside the window, OR
+ it is outside the window, but is interacting with a widget.
+ */
+GUI.prototype.hasMouseFocus = function() {
+    return this.mouseInWindow || this.activeWidgetId != null;
+}
+
+
+GUI.prototype.begin = function (io, windowTitle) {
+
+    this.windowTitle = windowTitle;
+
+    this.indexBuffer = [];
+    this.positionBuffer = [];
+    this.colorBuffer = [];
+    this.uvBuffer = [];
+
+    this.indexBufferIndex = 0;
+    this.positionBufferIndex = 0;
+    this.colorBufferIndex = 0;
+    this.uvBufferIndex = 0;
+
+    this.io = io;
+
+    // render window.
+    this._window();
+
 }
 
 
@@ -144,35 +511,31 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.titleBarVerticalSpacing = 6;
     // the title bar color.
     this.titleBarColor = [0.2, 0.4, 0.6];
-
-
-
-
-}
+};
 
 GUI.prototype._getCharDesc = function (char) {
     return fontInfo.chars[char.charCodeAt(0) - 32];
-}
+};
 
 GUI.prototype._addIndex = function (index) {
     this.indexBuffer[this.indexBufferIndex++] = index;
-}
+};
 
 GUI.prototype._addPosition = function (position) {
     this.positionBuffer[this.positionBufferIndex++] = position[0];
     this.positionBuffer[this.positionBufferIndex++] = position[1];
-}
+};
 
 GUI.prototype._addColor = function (color) {
     this.colorBuffer[this.colorBufferIndex++] = color[0];
     this.colorBuffer[this.colorBufferIndex++] = color[1];
     this.colorBuffer[this.colorBufferIndex++] = color[2];
     this.colorBuffer[this.colorBufferIndex++] = color[3];
-}
+};
 
 GUI.prototype._addUv = function (uv) {
     this.uvBuffer[this.uvBufferIndex++] = uv[0];this.uvBuffer[this.uvBufferIndex++] = uv[1];
-}
+};
 
 /*
  Get width and height of a text string.
@@ -272,8 +635,6 @@ GUI.prototype._text = function (position, str) {
         // triangle 2
         this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
 
-
-
         // finally, advance the x-coord, in preparation of rendering the next character.
         x += (cd.xadvance) * this.textScale;
     }
@@ -303,7 +664,7 @@ GUI.prototype._coloredVertex = function (position, color) {
     var whiteUv = [0.95, 0.95];
 
     this._addPosition(position);this._addColor(color);this._addUv(whiteUv);
-}
+};
 
 /*
  Render a box.
@@ -327,9 +688,6 @@ GUI.prototype._box = function (position, size, color, alpha) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
-
-
-
     var c = [color[0], color[1], color[2], alpha];
 
     // vertex 1
@@ -351,11 +709,11 @@ GUI.prototype._box = function (position, size, color, alpha) {
     // triangle 2
     this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
 
-}
+};
 
 GUI.prototype._unitCircle = function (position, theta, radius) {
     return [position[0] + radius * Math.cos(theta), position[1] + radius * Math.sin(theta)];
-}
+};
 
 
 /*
@@ -393,7 +751,7 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
             this._addIndex(curIndex+0);this._addIndex(curIndex-1);this._addIndex(centerVertexIndex);
         }
     }
-}
+};
 
 function _inCircle(p, s, x) {
 
@@ -432,7 +790,7 @@ function _inBox(p, s, x) {
 
 /*
 Before adding a widget, move the window caret to the right of the previous widget if this.sameLineActive,
-else start a line.
+ELSE start a line.
 you should ALWAYS call this function before adding a new widget.
  */
 GUI.prototype._moveWindowCaret = function(){
@@ -451,25 +809,12 @@ GUI.prototype._moveWindowCaret = function(){
     // the user have to explicitly call sameLine() again if we he wants samLineActive again.
     this.sameLineActive = false;
 
-}
-
-GUI.prototype.sameLine = function(){
-    this.sameLineActive = true;
-}
-
-GUI.prototype.sliderFloat = function (str, value, min, max) {
-    this._slider(str, value, min, max, false);
-}
-
-GUI.prototype.sliderInt = function (str, value, min, max) {
-    this._slider(str, value, min, max, true);
-}
+};
 
 GUI.prototype._draggerFloat = function (
     widgetId, labelStr, value, color, colorHover, width, position, minVal, maxVal) {
 
     var draggerPosition = position;
-
 
     var draggerSizes = [
         width,
@@ -522,25 +867,7 @@ GUI.prototype._draggerFloat = function (
         topRight   :  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]  ],
         bottomRight:  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]+  draggerSizes[1]  ],
     };
-}
-
-
-
-
-GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
-    this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
-}
-
-
-GUI.prototype.draggerRgb = function (labelStr, value) {
-    this._draggerFloatN(
-        labelStr, value, 3, [ [0,1] ], ["R:", "G:", "B:"],
-         [
-             [this.draggerRgbRedColor,this.draggerRgbRedColorHover ],
-             [this.draggerRgbGreenColor,this.draggerRgbGreenColorHover ],
-             [this.draggerRgbBlueColor,this.draggerRgbBlueColorHover ]
-         ]);
-}
+};
 
 /*
 sublabels,
@@ -731,233 +1058,6 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
 
 }
 
-/*
-If value.val == id, then that means this radio button is chosen.
- */
-GUI.prototype.radioButton= function (labelStr, value, id) {
-
-    this._moveWindowCaret();
-
-    /*
-     Radio button IO
-     */
-
-
-    var zeroHeight = this._getTextSizes("0")[1];
-
-    var innerRadius = (zeroHeight + 2 * 1) / 2;
-    var outerRadius = (zeroHeight + 2 * 4) / 2;
-
-    var radioButtonPosition = this.windowCaret;
-
-
-    var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
-
-    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
-
-
-     if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
-         value.val = id;
-     }
-
-    var isHover = mouseCollision;
-
-
-    /*
-     CHECKBOX RENDERING
-     */
-
-    this._circle(radioButtonPosition, radioButtonSizes,
-        isHover ? this.radioButtonOuterColorHover : this.radioButtonOuterColor, 16);
-
-
-    if (value.val == id) {
-        var p = radioButtonPosition;
-        var s = radioButtonSizes;
-        var innerCirclePosition = [
-            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerRadius * 2 )),
-            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerRadius * 2 )),
-        ];
-
-        this._circle(innerCirclePosition, [innerRadius * 2, innerRadius * 2],
-            isHover ? this.radioButtonInnerColorHover : this.radioButtonInnerColor, 16);
-    }
-
-    
-    // now render radio button label.
-    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelSpacing, radioButtonPosition[1]]
-    var labelStrSizes = [this._getTextSizes(labelStr)[0],  radioButtonSizes[1]  ];
-    this._textCenter(labelPosition, labelStrSizes, labelStr);
-
-    this.prevWidgetSizes = [radioButtonSizes[0] + labelStrSizes[0], radioButtonSizes[1]  ];
-}
-
-
-
-
-GUI.prototype.checkbox= function (labelStr, value) {
-
-    this._moveWindowCaret();
-
-    /*
-     CHECKBOX IO(if checkbox clicked, flip boolean value.)
-     */
-
-    // use height of zero to determine size of checkbox, to ensure that the textl label does become higher
-    // than the checkbox.
-    var zeroHeight = this._getTextSizes("0")[1];
-
-    var innerSize = zeroHeight + 2*2;
-    var outerSize = zeroHeight + 2*4;
-
-    var checkboxPosition = this.windowCaret;
-    var checkboxSizes = [outerSize, outerSize];
-
-    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
-
-    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
-        value.val = !value.val;
-    }
-
-    var isHover = mouseCollision;
-
-    /*
-     CHECKBOX RENDERING
-     */
-
-    // render outer box.
-    this._box(
-        checkboxPosition,
-        checkboxSizes, isHover ?  this.checkboxOuterColorHover :  this.checkboxOuterColor);
-
-
-    // now render a centered inner box, that shows whether the checkbox is true, or false.
-
-    if(value.val) {
-        var p = checkboxPosition;
-        var s = checkboxSizes;
-        var innerboxPosition = [
-            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerSize )),
-            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerSize )),
-        ];
-
-        this._box(
-            innerboxPosition,
-            [innerSize, innerSize], isHover ? this.checkboxInnerColorHover : this.checkboxInnerColor);
-    }
-
-    // now render checkbox label.
-    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
-    var labelStrSizes = [this._getTextSizes(labelStr)[0],  checkboxSizes[1]  ];
-    this._textCenter(labelPosition, labelStrSizes, labelStr);
-
-    this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0],checkboxSizes[1]  ];
-}
-
-
-GUI.prototype.button = function (str) {
-
-    this._moveWindowCaret();
-
-    var widgetId = hashString(str);
-
-    /*
-    BUTTON RENDERING
-     */
-
-    var buttonPosition = this.windowCaret;
-
-    var textSizes = this._getTextSizes(str);
-
-    // button size is text size, plus the spacing around the text.
-    var buttonSizes = [
-        textSizes[0] + this.buttonSpacing * 2,
-        textSizes[1] + this.buttonSpacing * 2
-    ];
-
-    var color;
-    var isButtonClick = false;
-
-    // we can only hover or click, when are not interacting with some other widget.
-    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
-
-        if(this.io.mouseLeftDownPrev  && !this.io.mouseLeftDownCur ) {
-
-            isButtonClick = true;
-            color = this.clickButtonColor;
-        } else if(this.io.mouseLeftDownCur ) {
-
-            color = this.clickButtonColor;
-            this.activeWidgetId = widgetId;
-        } else {
-            color = this.hoverButtonColor;
-        }
-
-
-    } else {
-        color =  this.buttonColor
-    }
-
-    this._box(
-        buttonPosition,
-        buttonSizes, color)
-
-    // Render button text.
-    this._text([buttonPosition[0] + this.buttonSpacing,
-        buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
-
-
-
-    // move down window caret.
-
-    this.prevWidgetSizes =(buttonSizes);
-
-
-    /*
-    BUTTON IO
-    If button is pressed, return true;
-    Otherwise, return false.
-     */
-
-
-    if(isButtonClick){
-         return true; // button press!
-    }
-
-    return false;
-}
-
-
-GUI.prototype.separator = function(){
-
-    this._moveWindowCaret();
-
-    var separatorPosition = this.windowCaret;
-    var separatorSizes = [
-        this.windowSizes[0] - 2* this.windowSpacing,
-        this._getTextSizes("0")[1]*0.2 ];
-
-    this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4] );
-
-    this.prevWidgetSizes =(separatorSizes);
-}
-
-
-GUI.prototype.textLine = function (str) {
-
-    this._moveWindowCaret();
-
-    var textLinePosition = this.windowCaret;
-
-    var textSizes = this._getTextSizes(str);
-    
-    // Render button text.
-    this._textCenter(textLinePosition, textSizes, str);
-
-    this.prevWidgetSizes = textSizes;
-
-}
-
 
 GUI.prototype._window = function () {
 
@@ -1044,35 +1144,6 @@ GUI.prototype._window = function () {
         ], this.io.mousePosition);
 }
 
-/*
-Mouse has focus EITHER when the mouse is inside the window, OR
-it is outside the window, but is interacting with a widget.
- */
-GUI.prototype.hasMouseFocus = function() {
-    return this.mouseInWindow || this.activeWidgetId != null;
-}
-
-
-GUI.prototype.begin = function (io, windowTitle) {
-
-    this.windowTitle = windowTitle;
-
-    this.indexBuffer = [];
-    this.positionBuffer = [];
-    this.colorBuffer = [];
-    this.uvBuffer = [];
-
-    this.indexBufferIndex = 0;
-    this.positionBufferIndex = 0;
-    this.colorBufferIndex = 0;
-    this.uvBufferIndex = 0;
-
-    this.io = io;
-
-    // render window.
-    this._window();
-
-}
 
 GUI.prototype._restoreGLState = function (gl) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer);
@@ -1099,82 +1170,5 @@ GUI.prototype._backupGLState = function (gl) {
      */
 
 }
-
-GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
-
-    /*
-    If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
-    when calling vertexAttribPointer, which means that we would effectively corrupt the user data!
-     */
-    var VAO_ext = gl.getExtension('OES_vertex_array_object');
-    if(VAO_ext)
-        VAO_ext.bindVertexArrayOES(null);
-
-    /*
-    We are changing some GL states when rendering the GUI. So before rendering we backup these states,
-    and after rendering we restore these states. This is so that the end-user does not involuntarily have his
-    GL-states messed with.
-     */
-    this._backupGLState(gl);
-
-
-    this.positionBufferObject.update(this.positionBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location);
-    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0);
-    this.positionBufferObject.unbind();
-
-
-    this.colorBufferObject.update(this.colorBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
-    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 4, gl.FLOAT, false, 0, 0);
-    this.colorBufferObject.unbind();
-
-    this.uvBufferObject.update(this.uvBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aUv.location);
-    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0);
-    this.uvBufferObject.unbind();
-
-    this.indexBufferObject.update(this.indexBuffer);
-
-
-    /*
-    Setup matrices.
-    */
-    var projection = mat4.create()
-    mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
-
-    this.shader.bind()
-
-    this.shader.uniforms.uProj = projection;
-    this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
-
-    gl.disable(gl.DEPTH_TEST) // no depth testing; we handle this by manually placing out
-    // widgets in the order we wish them to be rendered.
-
-
-    // for text rendering, enable alpha blending.
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-
-    gl.drawElements(gl.TRIANGLES, (this.indexBufferIndex), gl.UNSIGNED_SHORT, 0);
-
-
-    gl.disable(gl.BLEND)
-
-
-    /*
-    Make sure to always reset the active widget id, if mouse is released.
-    This makes sure that every widget does not explicitly have to reset this value
-    by themselves, which is a bit error-prone.
-     */
-    if(this.activeWidgetId != null && this.io.mouseLeftDownCur == false ) {
-        this.activeWidgetId = null;
-    }
-
-
-   this._restoreGLState(gl);
-
-}
-
 
 module.exports = GUI;
