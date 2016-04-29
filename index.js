@@ -73,6 +73,10 @@ GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels
     this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
 };
 
+GUI.prototype.draggerFloat2 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 2, minMaxValues, subLabels);
+};
+
 GUI.prototype.draggerRgb = function (labelStr, value) {
     this._draggerFloatN(
         labelStr, value, 3, [[0, 1]], ["R:", "G:", "B:"],

@@ -183,6 +183,7 @@ var demo2GrassColor = [0.12, 0.34, 0.12] ;
 var demo2SandColor = [0.50, 0.4, 0.21] ;
 var demo2HeightScale = {val: 200.0 };
 var demo2NoiseScale = {val: 2.0};
+var demo2HeightmapPosition = [0.0, 0.0];
 
 
 var demo2TextureNoiseScale = { val:0.3 };
@@ -276,6 +277,7 @@ shell.on("gl-render", function (t) {
 
         demo2Shader.uniforms.uHeightScale = demo2HeightScale.val;
         demo2Shader.uniforms.uNoiseScale = demo2NoiseScale.val;
+        demo2Shader.uniforms.uPosition = demo2HeightmapPosition;
 
         demo2Shader.uniforms.uTextureNoiseScale = demo2TextureNoiseScale.val;
         demo2Shader.uniforms.uTextureNoiseStrength = demo2TextureNoiseStrength.val;
@@ -350,6 +352,7 @@ shell.on("gl-render", function (t) {
 
         gui.sliderFloat("Height Scale", demo2HeightScale, 0, 400 );
         gui.sliderFloat("Noise Scale", demo2NoiseScale, 0, 20.0 );
+        gui.draggerFloat2("Position", demo2HeightmapPosition, [[-10, +10]], ["X:", "Z:"]);
 
         gui.separator();
 
