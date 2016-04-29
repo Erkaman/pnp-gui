@@ -165,14 +165,13 @@ const DEMO_HEIGHTMAP = 3;
 var bg = [0.6, 0.7, 1.0];
 var demo = {val: DEMO_MODEL};
 
-var demo1DiffuseColor = [0.7, 0.7, 0.7];
-var demo1AmbientLight = [0.3, 0.3, 0.3];
-var demo1LightColor = [0.4, 0.0, 0.0];
-var demo1SunDir = [0.71, 0.71, 0];
-var demo1SpecularPower = {val: 4.0};
+var demo1DiffuseColor = [0.42, 0.34, 0.0];
+var demo1AmbientLight = [0.77, 0.72, 0.59];
+var demo1LightColor = [0.40, 0.47, 0.0];
+var demo1SunDir = [-0.69, 1.33, 0.57];
+var demo1SpecularPower = {val: 12.45};
 var demo1HasSpecular = {val: true};
 var demo1RenderModel = {val: RENDER_BUNNY};
-
 
 
 var demo2AmbientLight = [ 0.85, 0.52, 0.66];
