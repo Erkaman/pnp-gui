@@ -3,3 +3,5 @@
 * Combo box.
 * Text Input.
 * Scrollbar.
+* more flexible constants for tweaking size of checkbox and radio button
+* fix _draggerFloatN max-min default.
