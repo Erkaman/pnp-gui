@@ -326,7 +326,10 @@ shell.on("gl-render", function (t) {
         if (demo1HasSpecular.val)
             gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
 
-        gui.draggerFloat3("Light Direction", demo1SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
+
+       gui.draggerFloat3("Light Direction", demo1SunDir, [-2, +2], ["X:", "Y:", "Z:"]);
+
+
 
         if (gui.button("Randomize")) {
             demo1Randomize();
@@ -337,7 +340,7 @@ shell.on("gl-render", function (t) {
 
         gui.draggerRgb("Ambient Light", demo2AmbientLight);
         gui.draggerRgb("Light Color", demo2LightColor);
-        gui.draggerFloat3("Light Direction", demo2SunDir, [[0, +2]], ["X:", "Y:", "Z:"]);
+        gui.draggerFloat3("Light Direction", demo2SunDir, [0, +2], ["X:", "Y:", "Z:"]);
 
 
 
@@ -352,7 +355,7 @@ shell.on("gl-render", function (t) {
 
         gui.sliderFloat("Height Scale", demo2HeightScale, 0, 400 );
         gui.sliderFloat("Noise Scale", demo2NoiseScale, 0, 20.0 );
-        gui.draggerFloat2("Position", demo2HeightmapPosition, [[-10, +10]], ["X:", "Z:"]);
+        gui.draggerFloat2("Position", demo2HeightmapPosition, [-10, +10], ["X:", "Z:"]);
 
         gui.separator();
 

@@ -91,7 +91,7 @@ GUI.prototype.draggerFloat1 = function (labelStr, value, minMaxValues, subLabels
 
 GUI.prototype.draggerRgb = function (labelStr, value) {
     this._draggerFloatN(
-        labelStr, value, 3, [[0, 1]], ["R:", "G:", "B:"],
+        labelStr, value, 3, [0, 1], ["R:", "G:", "B:"],
         [
             [this.draggerRgbRedColor, this.draggerRgbRedColorHover],
             [this.draggerRgbGreenColor, this.draggerRgbGreenColorHover],
@@ -952,12 +952,16 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         colors = [];
 
 
-    // if minMaxValues only contains a single min-max pair, then that pair becomes the value of the rest
+    // if minMaxValues is only a single min-max pair(a  n array on the form [min,max]),
+    // then that pair becomes the value of the rest
     // of the min-max pairs.
-    if (minMaxValues.length == 1) {
-        for (var i = 1; i < N; ++i) {
-            minMaxValues[i] = minMaxValues[0];
+    if (minMaxValues.length == 2 &&  typeof minMaxValues[0][0] == "undefined" ) {
+        var defaultValue = [minMaxValues[0], minMaxValues[1]  ];
+        for (var i = 0; i < N; ++i) {
+            minMaxValues[i] = defaultValue;
         }
+
+
     }
 
 
