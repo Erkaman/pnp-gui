@@ -40,6 +40,9 @@ function GUI(gl) {
     this.fontAtlasTexture.magFilter = gl.LINEAR;
     this.fontAtlasTexture.minFilter = gl.LINEAR;
 
+    /*
+    DO NOT CHANGE THIS VALUE. The entire GUI layout will break!
+     */
     this.textScale = 1.0;
 
     /*
@@ -69,12 +72,21 @@ GUI.prototype.sliderInt = function (str, value, min, max) {
     this._slider(str, value, min, max, true);
 };
 
+GUI.prototype.draggerFloat4 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 4, minMaxValues, subLabels);
+};
+
 GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
     this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
 };
 
 GUI.prototype.draggerFloat2 = function (labelStr, value, minMaxValues, subLabels) {
     this._draggerFloatN(labelStr, value, 2, minMaxValues, subLabels);
+};
+
+
+GUI.prototype.draggerFloat1 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 1, minMaxValues, subLabels);
 };
 
 GUI.prototype.draggerRgb = function (labelStr, value) {
@@ -280,13 +292,13 @@ GUI.prototype.button = function (str) {
 
 
 GUI.prototype.separator = function () {
-
     this._moveWindowCaret();
 
     var separatorPosition = this.windowCaret;
+    // the separator should fill out the windows size.
     var separatorSizes = [
         this.windowSizes[0] - 2 * this.windowSpacing,
-        this._getTextSizes("0")[1] * 0.2];
+        this._getTextSizes("0")[1] *  this.separatorHeightRatio];
 
     this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4]);
 
@@ -295,18 +307,15 @@ GUI.prototype.separator = function () {
 
 
 GUI.prototype.textLine = function (str) {
-
     this._moveWindowCaret();
 
     var textLinePosition = this.windowCaret;
-
     var textSizes = this._getTextSizes(str);
 
     // Render button text.
     this._textCenter(textLinePosition, textSizes, str);
 
     this.prevWidgetSizes = textSizes;
-
 };
 
 GUI.prototype.begin = function (io, windowTitle) {
@@ -868,8 +877,11 @@ GUI.prototype._moveWindowCaret = function () {
 
 GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorHover, width, position, minVal, maxVal) {
 
-    var draggerPosition = position;
+    /*
+    DRAGGER IO
+     */
 
+    var draggerPosition = position;
     var draggerSizes = [
         width,
         this._getTextSizes("0")[1] + 2 * this.draggerVerticalSpacing
@@ -993,8 +1005,6 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
 
         // update value
         value[iDragger] = v.val;
-
-
     }
 
     // the total size of all the N draggers.
