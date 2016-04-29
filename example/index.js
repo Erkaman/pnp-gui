@@ -67,13 +67,12 @@ varying vec3 vPosition;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
-uniform mat4 uModel;
 
 void main() {
   vNormal = aNormal;
   vPosition = aPosition;
   
-  gl_Position = uProjection * uView * uModel* vec4(aPosition, 1.0);
+  gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }
 `
 
@@ -93,15 +92,13 @@ uniform float uSpecularPower;
 uniform float uHasSpecular;
 
 void main() {
-
     vec3 n = vNormal;
     vec3 l = normalize(uLightDir);
-    vec3 v = normalize(-(vPosition - uEyePos));
+    vec3 v = normalize(uEyePos - vPosition);
 
     vec3 ambient = uAmbientLight * uDiffuseColor;
     vec3 diffuse = uDiffuseColor * uLightColor * dot(n, l) ;
-    vec3 specular = pow(
-    clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
+    vec3 specular = pow(clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
     
     gl_FragColor = vec4(ambient + diffuse + specular*uHasSpecular, 1.0);
 }
@@ -217,7 +214,6 @@ shell.on("gl-render", function (t) {
         demo1Shader.bind();
 
         demo1Shader.uniforms.uView = view;
-        demo1Shader.uniforms.uModel = model;
         demo1Shader.uniforms.uProjection = projection;
         demo1Shader.uniforms.uDiffuseColor = demo1DiffuseColor;
         demo1Shader.uniforms.uAmbientLight = demo1AmbientLight;
