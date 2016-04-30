@@ -1,25 +1,25 @@
 # pnp-gui
 
-pnp-gui is a WebGL gui toolkit whose main goal is to be easy to use, bloat-free, and be easy to
+pnp-gui(plug n' play GUI) is a WebGL gui toolkit whose main goal is to be easy to use, bloat-free, and be easy to
 integrate into any project. Impatient people probably want a demo right away,
 and [here](https://github.com/Erkaman/gl-simple-gui#demo) it is.
 
 pnp-gui takes much inspiration from the fantastic [imgui](https://github.com/ocornut/imgui)
 project. Like imgui, it provides an Immediate Mode GUI toolkit. Also like imgui,
-it aims to be as bloat-free as possible, and to be as easy to integrate into
-any project as project. Very little code to be written to initialize the GUI,
+it aims to be as bloat-free as possible, and to be easy to integrate into
+any project. Very little code needs to be written to create a simple GUI,
 and a font comes pre-packaged with the library.
 
 pnp-gui is mainly meant to be used by programmers who want to make a simple GUI
 for debugging purposes, or who want a simple GUI that can be used
-to tweak a couple of variables in their applications. In the provided demo,
+to tweak a couple of variables in their applications. Also, in the provided demo,
 some possible use-cases of pnp-gui are shown.
 
 However, do note that due to the simplicity of the toolkit, there are many drawbacks.
 pnp-gui does not provide you with any way to do advanced widget and window layout.
 More advanced GUI toolkits such as Swing and QT provides ways to create advanced
 window layouts. However, in order to reduce complexity, the window layout
-options of pnp-gui have been made very limited, in order to reduce complexity.
+options of pnp-gui have been made very limited.
 
 Another important thing to note is that pnp-gui does not provide any way of
 creating beautiful interfaces that can be presented to the end user. You can
@@ -33,22 +33,24 @@ purposes..
 A demo is given at this link:
 http://erkaman.github.io/gl-simple-gui/
 
+I should look like this:
+
 ![text](images/demo_screen.png)
 
-It is actually two demos in one, and the demo can be toggled with the upper radio button.
+First, note that the GUI in the demo is all rendered using WebGL, and no HTML is used at all. It is actually two demos in one, and the demo can be toggled with the upper radio button.
 In the first demo, you can use the widgets of pnp-gui to change the lighting and color
 settings of a simple model. In the second demo, you can use the widgets
-of pnp-gui to modify the lighting, color and geometry of a simple heightmap.
+of pnp-gui to modify the lighting, color and geometry of a simple heightmap. Note that you can move the
+window by dragging and dropping.
+
+And the source code of the demo can be found at `example/index.js`
 
 ## Tutorial
 
 In this section, we give a tutorial that demonstrates how easy it is to use
-the toolkit. First we give the source code of the demo:
+the toolkit. First we give the source code of another simple demo:
 
 ```javascript
-
-/* global requestAnimationFrame */
-
 var bunny = require('bunny');
 var mat4 = require('gl-mat4');
 var vec3 = require('gl-vec3');
@@ -286,21 +288,20 @@ the above demo results in the following GUI:
 
 
 Let us now go through the important parts of the above demo.
-First of all, the code that creates the GUI:
+First of all, the code that creates the gui object:
 
 ```javascript
     gui = new createGui(gl)
     gui.windowSizes = [360, 580];
 ```
 
-In the first line, we simply create the GUI. In the second line, we set the
+In the first line, we simply create the gui object. In the second line, we set the
 window sizes of the GUI. As remarked in the Introduction, we do not provide any means of doing advanced
 GUI layout. So if the window does not fit all widgets you place out,
-you will have to solve this by setting the value of `gui.windowSizes`.
+you will have to solve this by setting the value of `gui.windowSizes` so that all widgets fit.
 Note that you can tweak this value at any time, not just after creation.
 
-After creating the GUI, we are now ready to use it. Every frame, we have to
-do the following:
+After creating the gui object, we are now ready to use it. You need to first provide png-gui with IO-information:
 
 ```javascript
     var pressed = shell.wasDown("mouse-left");
@@ -308,7 +309,7 @@ do the following:
         mouseLeftDownCur: pressed,
         mouseLeftDownPrev: mouseLeftDownPrev,
 
-        mousePosition: shell.mouse,
+        mousePositionCur: shell.mouse,
         mousePositionPrev: shell.prevMouse
     };
     mouseLeftDownPrev = pressed;
@@ -391,7 +392,7 @@ However, if the user clicks on the second radio button, `demo1RenderModel.val`
 will, by the toolkit, be modified to `RENDER_DRAGON`, and thus the second
 radio button is rendered as filled in.
 
-It also easy to add another radio button. Just add another line
+It is also easy to add another radio button. Just add another line
 
 ```javascript
     gui.radioButton("Cat", demo1RenderModel, RENDER_CAT);
@@ -400,7 +401,10 @@ It also easy to add another radio button. Just add another line
 and, if `RENDER_CAT` has a value distinct from `RENDER_BUNNY` and `RENDER_BUNNY`, it will work.
 
 Finally, note that between the two calls to `radioButton`, we are calling
-`sameLine`. This makes it so that the two radio buttons are put on the same line.
+`sameLine`. This makes it so that the two radio buttons are put on the same line. Otherwise, they would have been placed on different lines. Like this:
+
+<img src="images/tut_radio_lines.png" width="194" height="55" />
+
 `sameLine` is a very flexible function, and can be used with any two widgets!
 
 Let us now look at the next three lines of the GUI. Here we are using three `draggerRgb` widgets to control the
@@ -416,7 +420,7 @@ the above results in:
 
 <img src="images/tut_rgb.png" width="304" height="84" />
 
-`draggerRgb` is a useful widget that can be used to let the user input a color. The input parameters is
+`draggerRgb` is a useful widget that can be used to let the user input a color. The input parameters to the function `draggerRgb` is
 a label string, and an array that contains the color being modified by the widget. Note, for instance, that
 `demo1DiffuseColor` is defined as
 
@@ -427,7 +431,7 @@ var demo1DiffuseColor = [0.42, 0.34, 0.0];
 and this array will be modified by the toolkit when the user manipulates the first of the three `draggerRgb` widgets.
 
 Let us now look at the next part of the GUI. Next, comes a checkbox that controls whether the model should have
-specular lighting. If it should have specular lighting, then we also render a slider widget that control the specular power.
+specular lighting. If it should have specular lighting, then we also render a slider widget that controls the specular power.
 This is all rendered with the following code:
 
 ```javascript
@@ -443,14 +447,14 @@ the above results in this:
 
 and especially note that if the checkbox is not checked, then the below slider widget is not rendered!
 
-The checkbox widget is a simple widget. If the user checks the checkbox, then `demo1SpecularPower.val` is `true`, othewise, it is `false`. The next couple of lines are however quite interesting
+The `checkbox` widget is a simple widget. If the user checks the checkbox, then `demo1SpecularPower.val` is `true`, othewise, it is `false`. The next couple of lines are however quite interesting
 
 ```javascript
 if (demo1HasSpecular.val)
         gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
 ```
 
-this shows in order to remove a widget in pnp-gui, all we have to do is not render it all! So if `demo1HasSpecular.val`, then render widget, otherwise do not render it at all.
+this shows that in order to remove a widget in pnp-gui, all we have to do is not render the widget at all. And that's it.  So if `demo1HasSpecular.val`, then render widget, otherwise do not render it at all.
 
 The `sliderFloat` is also a relatively simple widget. `demo1SpecularPower` is defined as
 
@@ -485,10 +489,10 @@ you can have even more fine-grained control of the subwidgets. If you instead pa
 can specify that the first subwidget specifies values in range `[0,1]`, the second one in range `[-2,1]` and the third one
 in range `[-1,0]`.
 
-Optionally, you can also specify labels of all the subwidgets. The argument `["X:", "Y:", "Z:"]` specifies a label for each
+Optionally, you can also specify labels for all the subwidgets. The argument `["X:", "Y:", "Z:"]` specifies a label for each
 of the three subwidgets.
 
-Finally, in addition to `draggerFloat3`, there are also the widgets `draggerFloat1`, `draggerFloat2` and `draggerFloat4`.
+Finally, in addition to `draggerFloat3`, there are also the widgets `draggerFloat1`, `draggerFloat2` and `draggerFloat4`. But they work exactly `draggerFloat3`, except that they handle arrays of size 1, 2, 4.
 
 Now let us look at the next lines of code in the Gui. Next, we have a button that randomizes all the values in the above widgets if you press it:
 
@@ -505,7 +509,7 @@ it looks like this:
 
 As can be seen, `button` is very easy to use; if the button was pressed the current frame, return `true`, otherwise, return false `false`.
 
-Let us go to the next line in the GUI. Next, is a widget that places out a separator:
+Let us go to the next line in the GUI. It is a widget that places out a separator:
 
 ```
     gui.separator();
@@ -517,9 +521,9 @@ it is the gray line in the following image:
 <img src="images/tut_separator.png" width="340" height="86" />
 
 
-As can be observed, the separator can simply be used to introduce logical groupings into a GUI.
+As can be observed, the separator can be used to introduce logical groupings into a GUI.
 
-the remaineder of the GUI code looks like this:
+the remainder of the GUI code looks like this:
 
 ```javascript
     gui.textLine("Miscellaneous");
@@ -565,8 +569,7 @@ shell.on("tick", function () {
 
 these lines do the following: if the user is not interacting with the GUI, we let the user manipulate the camera using the
 mouse. However, if the user is interacting with the GUI, then `gui.hasMouseFocus()` will return true. If the user
-is using the GUI, we often do not want the user to be able to interact with the 3D view as well, so we return
-if that funtion returns `true`.
+is using the GUI, we often do not want the user to be able to interact with the 3D view as well, so we do not allow that if `gui.hasMouseFocus()` returns `true`.
 
 So, by using `gui.hasMouseFocus()`, we can ensure that the user does not use the GUI and the 3D application at the same time.
 
@@ -576,8 +579,8 @@ So, by using `gui.hasMouseFocus()`, we can ensure that the user does not use the
 
 This basically means that there is no retained state in the GUI; that is to say,
 there are no objects that are used to store the widgets of the GUI. Instead the
-GUI is being created on the fly every single frame. While this seem unnatural
-to people who have not used such a GUI before, this kind of GUI results in
+GUI is being created on the fly every single frame. While this seem may unnatural
+to people who have not used such a GUI before, this kind of design actually results in
 a GUI that is very intuitive to use for programmers. If you wish to see this in action, please
 see the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
 
@@ -590,12 +593,12 @@ This is not yet supported.
 As stated in the introduction, png-gui does not offer very many features when it comes to changing the visual appearance.
 Therefore, this feature is not supported.
 
-If you anyways wish to change the font, you will have to dig into the source code of the project. The font is stored as a font-atlas `.png` and as a `.json` file of character info, and both files were generated by the following C++ program:
+If you anyways wish to change the font, you will have to dig into the source code of the project. The font is stored as a font-atlas `.png` packed using `ndpack-image` and as a `.json` file of character info, and both files were generated by the following C++ program:
 TODO.
 
 <b>Can you render unicode text strings with pnp-gui?</b>
 
-Currently, the toolkit can only render text strings where the character are in the range `0x20`-`0x7E` in the ASCII table. But for rendering English text, you do not need any other characters. If you use any other character than these, the result is undefined.
+Currently, the toolkit can only render text strings where the characters are in the range `0x20`-`0x7E` in the ASCII table. But for rendering English text, you do not need any other characters. If you use any other character than these, the result is undefined.
 
 <b>Can you create multiple windows?</b>
 
@@ -604,6 +607,10 @@ Not yet supported.
 <b>Can you change the font size?</b>
 
 Not yet supported.
+
+<b>Can you customize the appearance of the GUI?</b>
+
+
 
 ## API
 
@@ -621,11 +628,11 @@ create the GUI.
 Creates a window where you can place out your widgets. Should always be called before you place out your widgets.
 
 * `io` an object that contains the properties
- * `mouseLeftDownCur` whether the left mouse button is down of the current frame.
- * `mouseLeftDownPrev` whether the left mouse button was down of the previous frame.
+ * `mouseLeftDownCur` whether the left mouse button is down for the current frame.
+ * `mouseLeftDownPrev` whether the left mouse button was down for the previous frame.
  * `mousePositionCur` the mouse position of the current frame
  * `mousePositionPrev`  the mouse position of the previous frame
-* `windowTitle` the titel of the window.
+* `windowTitle` the title of the window.
 
 ### `gui.end(gl, canvasWidth, canvasHeight)`
 
@@ -637,7 +644,7 @@ Should be called once you have placed out your widgets.
 
 ### `gui.hasMouseFocus()`
 
-Returns `true` of the user is interacting with the GUI in some manner. Else `false`.
+Returns `true` if the user is interacting with the GUI in some manner. Else `false`.
 
 ### `gui.button(str)`
 
@@ -664,7 +671,7 @@ Same as `sliderFloat`, expect the values are rounded to integers.
 
 ### `gui.draggerFloat3(labelStr, value, minMaxValues, subLabels)`
 
-Places out a list of three dragger subwidgets. This widget can be used to manipulate an array of length 3 with single widget.
+Places out a list of three dragger subwidgets. This widget can be used to manipulate an array of length 3 with a single widget.
 
 * `labelStr` The right label of the widget.
 * `value` the array that is manipulated by this widget. Should be an array of length 3.
