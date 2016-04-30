@@ -440,9 +440,128 @@ the above results in this:
 
 and especially note that if the checkbox is not checked, then the below slider widget is not rendered!
 
-The checkbox widget is a simple widget. If the user checks the checkbox,
+The checkbox widget is a simple widget. If the user checks the checkbox, then `demo1SpecularPower.val` is `true`, othewise, it is `false`. The next couple of lines are however quite interesting
 
+```javascript
+if (demo1HasSpecular.val)
+        gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
+```
 
+this shows in order to remove a widget in pnp-gui, all we have to do is not render it all! So if `demo1HasSpecular.val`, then render widget, otherwise do not render it at all.
+
+The `sliderFloat` is also a relatively simple widget. `demo1SpecularPower` is defined as
+
+```javascript
+var demo1SpecularPower = {val: 12.45};
+```
+
+and if the user manipulates `sliderFloat`, then `demo1SpecularPower.val` is modified. However, since the third and fourth parameters are `0` and `40`, the value is restricted to be in the range `[0,40]`. Also, if you want a slider widget for integer values, simply use `sliderInt`.
+
+Now let us look at the next line of code in the GUI. This is a widget that allow you to change the light direction
+of the light that is illuminating the model:
+
+```javascript
+    gui.draggerFloat3("Light Direction", demo1SunDir, [-2, +2], ["X:", "Y:", "Z:"]);
+```
+
+the code results in 
+
+![text](images/tut_xyz.png)
+
+`draggerFloat3` is a very flexible widget. You can use it when you want set three values in a single widget.
+As can be observed it is really a single widget composed of three subwidgets.
+And as has probably already been guessed, `demo1SunDir` is simply an array of three:
+
+```
+var demo1SunDir = [-0.69, 1.33, 0.57];
+```
+
+The argument `[-2, +2]`  specifies that the min and max values of all the three subwidgets is `-2` and `+2`. However,
+you can have even more fine-grained control of the subwidgets. If you instead pass `[[0,1], [-2,1], [-1,0] ` you 
+can specify that the first subwidget specifies values in range `[0,1]`, the second one in range `[-2,1]` and the third one
+in range `[-1,0]`.
+
+Optionally, you can also specify labels of all the subwidgets. The argument `["X:", "Y:", "Z:"]` specifies a label for each
+of the three subwidgets.  
+
+Finally, in addition to `draggerFloat3`, there are also the widgets `draggerFloat1`, `draggerFloat2` and `draggerFloat4`.
+
+Now let us look at the next lines of code in the Gui. Next, we have a button that randomizes all the values in the above widgets if you press it:
+
+```javascript
+    if (gui.button("Randomize")) {
+        demo1Randomize();
+    }
+```
+
+it looks like this:
+
+![text](images/tut_button.png)
+
+As can be seen, `button` is very easy to use; if the button was pressed the current frame, return `true`, otherwise, return false `false`. 
+
+Let us go to the next line in the GUI. Next, is a widget that places out a separator:
+
+```
+    gui.separator();
+```
+
+it is the gray line in the following image:
+
+![text](images/tut_separator.png)
+
+As can be observed, the separator can simply be used to introduce logical groupings into a GUI. 
+
+the remaineder of the GUI code looks like this:
+
+```javascript
+    gui.textLine("Miscellaneous");
+    gui.draggerRgb("Background", bg);
+    gui.end(gl, canvas.width, canvas.height);
+```
+
+the first two lines should be perfectly understandable now. So let us skip to the third line. In order to use pnp-gui, you
+must do the following every single frame:
+
+```
+    gui.begin(io, "Window");
+    
+    // place out widgets here....
+
+    gui.end(gl, canvas.width, canvas.height);
+```
+
+so you MUST place out the widgets every single frame. It will not work if you only place them out the first frame. 
+This is because pnp-gui does, as is stated in the FAQ, not save any retained state. It will not remember where you
+placed out the widget for you, instead the GUI is created on the fly every single frame. Therefore, you must specify
+the widgets every single frame. 
+
+Now the tutorial is almost done. The last thing we would like to cover are these lines:
+
+```javascript
+shell.on("tick", function () {
+
+    // if interacting with the GUI, do not let the mouse control the camera.
+    if (gui.hasMouseFocus())
+        return;
+
+    if (shell.wasDown("mouse-left")) {
+        var speed = 2.0;
+        camera.rotate([(shell.mouseX / shell.width - 0.5) * speed, (shell.mouseY / shell.height - 0.5) * speed],
+            [(shell.prevMouseX / shell.width - 0.5) * speed, (shell.prevMouseY / shell.height - 0.5) * speed])
+    }
+    if (shell.scroll[1]) {
+        camera.zoom(shell.scroll[1] * 0.6);
+    }
+});
+```
+
+these lines do the following: if the user is not interacting with the GUI, we let the user manipulate the camera using the 
+mouse. However, if the user is interacting with the GUI, then `gui.hasMouseFocus()` will return true. If the user
+is using the GUI, we often do not want the user to be able to interact with the 3D view as well, so we return
+if that funtion returns `true`.
+
+So, by using `gui.hasMouseFocus()`, we can ensure that the user does not use the GUI and the 3D application at the same time.
 
 ## FAQ
 
