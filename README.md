@@ -2,7 +2,7 @@
 
 pnp-gui is a WebGL gui toolkit whose main goal is to be easy to use, bloat-free, and be easy to
 integrate into any project. Impatient people probably want a demo right away,
-and [here](http://erkaman.github.io/gl-simple-gui/#demo) it is.
+and [here](https://github.com/Erkaman/gl-simple-gui#demo) it is.
 
 pnp-gui takes much inspiration from the fantastic [imgui](https://github.com/ocornut/imgui)
 project. Like imgui, it provides an Immediate Mode GUI toolkit. Also like imgui,
