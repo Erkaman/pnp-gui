@@ -607,7 +607,15 @@ Not yet supported.
 
 Not yet supported.
 
-<b>Can you customize the appearance of the GUI?</b>
+<b>Do what degree can you customize the appearance of the GUI?</b>
+
+This toolkit is not really meant to be used to create beautiful GUIs, but there are certain visual aspects that you can customize. There are many constants that control the spacing and colors of the GUI. To, for instance, change the transparency of the window, you simply do this:
+
+```
+    gui.windowAlpha = 0.5;
+```
+
+The rest of the constants that can be customized are all listed in the function `_setupDefaultSettings` in `index.js`. Note that these constants can be costumized at ANY time; you do not have to do all customization at the initialization of the GUI.
 
 
 
