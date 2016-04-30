@@ -51,6 +51,8 @@ In this section, we give a tutorial that demonstrates how easy it is to use
 the toolkit. First we give the source code of another simple demo:
 
 ```javascript
+/* global requestAnimationFrame */
+
 var bunny = require('bunny');
 var mat4 = require('gl-mat4');
 var vec3 = require('gl-vec3');
@@ -60,7 +62,7 @@ var normals = require('normals');
 var glslify = require('glslify')
 var createOrbitCamera = require('orbit-camera');
 var shell = require("gl-now")();
-var createGui = require("../index.js");
+var createGui = require("pnp-gui");
 var cameraPosFromViewMatrix = require('gl-camera-pos-from-view-matrix');
 var dragon = require('stanford-dragon/3');
 var boundingBox = require('vertices-bounding-box');
@@ -105,7 +107,7 @@ uniform mat4 uView;
 void main() {
   vNormal = aNormal;
   vPosition = aPosition;
-
+  
   gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }
 `
@@ -133,7 +135,7 @@ void main() {
     vec3 ambient = uAmbientLight * uDiffuseColor;
     vec3 diffuse = uDiffuseColor * uLightColor * dot(n, l) ;
     vec3 specular = pow(clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
-
+    
     gl_FragColor = vec4(ambient + diffuse + specular*uHasSpecular, 1.0);
 }
 `
@@ -152,7 +154,6 @@ function centerGeometry(geo, scale) {
 
     geo.positions = transform(geo.positions, m)
 }
-
 
 shell.on("gl-init", function () {
     var gl = shell.gl
@@ -222,18 +223,18 @@ shell.on("gl-render", function (t) {
         dragonGeo.draw();
     }
 
-
     var pressed = shell.wasDown("mouse-left");
     var io = {
         mouseLeftDownCur: pressed,
         mouseLeftDownPrev: mouseLeftDownPrev,
 
-        mousePositionCur: shell.mouse,
+        mousePosition: shell.mouse,
         mousePositionPrev: shell.prevMouse
     };
     mouseLeftDownPrev = pressed;
 
     gui.begin(io, "Window");
+
 
     gui.textLine("Lighting Settings");
 
@@ -254,8 +255,7 @@ shell.on("gl-render", function (t) {
     if (gui.button("Randomize")) {
         demo1Randomize();
     }
-
-
+    
     gui.separator();
 
     gui.textLine("Miscellaneous");
@@ -279,7 +279,6 @@ shell.on("tick", function () {
         camera.zoom(shell.scroll[1] * 0.6);
     }
 });
-
 ```
 
 the above demo results in the following GUI:
