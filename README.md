@@ -226,7 +226,7 @@ shell.on("gl-render", function (t) {
         mouseLeftDownCur: pressed,
         mouseLeftDownPrev: mouseLeftDownPrev,
 
-        mousePosition: shell.mouse,
+        mousePositionCur: shell.mouse,
         mousePositionPrev: shell.prevMouse
     };
     mouseLeftDownPrev = pressed;
@@ -593,41 +593,104 @@ Note that this section should be treated as a quick reference, and if you want m
 
 create the GUI.
 
-* `gl` the WebGL context
-
-
-### `gui.sameLine()`
-
-### `gui.sliderFloat(labelStr, value, min, max)`
-
-### `gui.sliderInt(labelStr, value, min, max)`
-
-### `gui.draggerFloat4(labelStr, value, minMaxValues, subLabels)`
-
-### `gui.draggerFloat3(labelStr, value, minMaxValues, subLabels)`
-
-### `gui.draggerFloat2(labelStr, value, minMaxValues, subLabels)`
-
-### `gui.draggerFloat1(labelStr, value, minMaxValues, subLabels)`
-
-### `gui.draggerRgb(labelStr, value)`
-
-### `gui.radioButton(labelStr, value, id)`
-
-### `gui.checkBox(labelStr, value)`
-
-### `gui.button(str)`
-
-### `gui.separator()`
-
-### `gui.textLine(str)`
+* `gl` your WebGL context
 
 ### `gui.begin(io, windowTitle)`
 
+Creates a window where you can place out your widgets. Should always be called before you place out your widgets. 
+
+* `io` an object that contains the properties
+ * `mouseLeftDownCur` whether the left mouse button is down of the current frame.
+ * `mouseLeftDownPrev` whether the left mouse button was down of the previous frame.
+ * `mousePositionCur` the mouse position of the current frame
+ * `mousePositionPrev`  the mouse position of the previous frame
+* `windowTitle` the titel of the window.
+
 ### `gui.end(gl, canvasWidth, canvasHeight)`
+
+Should be called once you have placed out your widgets.
+
+* `gl` your WebGL context
+* `canvasWidth` the width of the canvas.
+* `canvasHeight` the height of the canvas.
 
 ### `gui.hasMouseFocus()`
 
+Returns `true` of the user is interacting with the GUI in some manner. Else `false`. 
+
+### `gui.button(str)`
+
+Places a button. Returns `true` if the button is clicked, else `false`
+
+* `str` the text string in the button.
+
+### `gui.sameLine()`
+
+The next widget is placed on the same line as the previous widget, if this method is called between them.
+
+### `gui.sliderFloat(labelStr, value, min, max)`
+
+A slider that can be used to set a floating point value. 
+
+* `labelStr` The right label of the slider.
+* `value` the value manipulated by this widget. Should be on the form `{val: v}`
+* `min` the minimum value of the slider.
+* `max` the maximum value of the slider.
+
+### `gui.sliderInt(labelStr, value, min, max)`
+
+Same as `sliderFloat`, expect the values are rounded to integers.
+
+### `gui.draggerFloat3(labelStr, value, minMaxValues, subLabels)`
+
+Places out a list of three dragger subwidgets. This widget can be used to manipulate an array of length 3 with single widget.
+
+* `labelStr` The right label of the widget.
+* `value` the array that is manipulated by this widget. Should be an array of length 3. 
+* `minMaxValues` if an array on the form [min,max], then this parameter specifies the min and max values of ALL the three subwidgets. However, if it is an array on the form `[ [min1,max1], [min2,max2], [min3,max3] ]`, then `[min1,max1]` is the min and max values of the first subwidget, and so on.
+* `subLabels` specifies the labels of the subwidgets. Defaults to an array of empty strings. 
+
+### `gui.draggerFloat4(labelStr, value, minMaxValues, subLabels)`
+
+Same as `draggerFloat3`, except it handles arrays of length 4.
+
+### `gui.draggerFloat2(labelStr, value, minMaxValues, subLabels)`
+
+Same as `draggerFloat3`, except it handles arrays of length 2.
+
+### `gui.draggerFloat1(labelStr, value, minMaxValues, subLabels)`
+
+Same as `draggerFloat3`, except it handles arrays of length 1.
+
+### `gui.draggerRgb(labelStr, value)`
+
+Basically a specialized version of `draggerFloat3` that allows you to manipulate RGB-values(array of length 3), and `minMaxValues` is set to `[0,1]`.
+
+### `gui.radioButton(labelStr, value, id)`
+
+Places out a single radio button. For more detailed usage, see the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
+
+* `labelStr` The right label of the radio button.
+* `value`. The value manipulated by this widget. Should be on the form `{val: v}`.
+* `id` the id of this button. If `value.val == id`, then this radio button is the chosen radio button, in a group of radio buttons.
+
+### `gui.checkBox(labelStr, value)`
+
+Places out a checkbox. 
+
+* `labelStr` The right label of the checkbox.
+* `value`. The value manipulated by this widget. Should be on the form `{val: v}`. If `value.val` is true, then the checkbox is checked, otherwise it is not.
+
+
+### `gui.separator()`
+
+Places out a separator, that can be used to create logical groupings in a GUI.
+
+### `gui.textLine(str)`
+
+Places out a single line of text. 
+
+* `str` the string this widget renders.
 
 
 
