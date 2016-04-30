@@ -282,7 +282,8 @@ shell.on("tick", function () {
 
 the above demo results in the following GUI:
 
-![text](images/tut_gui.png)
+<img src="images/tut_gui.png" width="433" height="407" />
+
 
 Let us now go through the important parts of the above demo.
 First of all, the code that creates the GUI:
@@ -375,7 +376,8 @@ is being rendered.
 
 the above lines results in:
 
-![text](images/tut_radio.png)
+<img src="images/tut_radio.png" width="239" height="23" />
+
 
 Note here that `demo1RenderModel` is defined as
 
@@ -412,7 +414,7 @@ ambient light, diffuse color, and light color of the model:
 
 the above results in:
 
-![text](images/tut_rgb.png)
+<img src="images/tut_rgb.png" width="304" height="84" />
 
 `draggerRgb` is a useful widget that can be used to let the user input a color. The input parameters is
 a label string, and an array that contains the color being modified by the widget. Note, for instance, that
@@ -436,7 +438,8 @@ This is all rendered with the following code:
 
 the above results in this:
 
-![text](images/tut_checkbox.png)
+<img src="images/tut_checkbox.png" width="308" height="56" />
+
 
 and especially note that if the checkbox is not checked, then the below slider widget is not rendered!
 
@@ -466,7 +469,8 @@ of the light that is illuminating the model:
 
 the code results in
 
-![text](images/tut_xyz.png)
+<img src="images/tut_xyz.png" width="325" height="29" />
+
 
 `draggerFloat3` is a very flexible widget. You can use it when you want set three values in a single widget.
 As can be observed it is really a single widget composed of three subwidgets.
@@ -496,7 +500,8 @@ Now let us look at the next lines of code in the Gui. Next, we have a button tha
 
 it looks like this:
 
-![text](images/tut_button.png)
+<img src="images/tut_button.png" width="343" height="21" />
+
 
 As can be seen, `button` is very easy to use; if the button was pressed the current frame, return `true`, otherwise, return false `false`.
 
@@ -508,7 +513,9 @@ Let us go to the next line in the GUI. Next, is a widget that places out a separ
 
 it is the gray line in the following image:
 
-![text](images/tut_separator.png)
+
+<img src="images/tut_separator.png" width="340" height="86" />
+
 
 As can be observed, the separator can simply be used to introduce logical groupings into a GUI.
 
