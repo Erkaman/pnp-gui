@@ -1,14 +1,21 @@
 {
-  "name": "gl-simple-gui",
-  "version": "1.0.0",
-  "description": "A simple WebGL Gui for debugging purposes.",
+  "name": "pnp-gui",
+  "version": "0.0.1",
+  "description": "A Immediate Mode WebGL Gui that aims to be easy to use and intergrate into any project.",
   "main": "index.js",
   "scripts": {
     "start": "budo --verbose example/index.js -t glslify --live --open",
     "test": "standard"
   },
   "keywords": [
-    "stackgl"
+    "stackgl",
+    "glsl",
+    "gl",
+    "webgl",
+    "gui",
+    "Immediate Mode GUI",
+    "text",
+    "font"
   ],
   "author": "Eric Arnebäck <arnebackeric@gmail.com> (https://github.com/Erkaman)",
   "license": "MIT",
@@ -49,7 +56,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Erkaman/gl-simple-gui.git"
+    "url": "https://github.com/Erkaman/pnp-gui.git"
   },
-  "homepage": "https://github.com/Erkaman/gl-simple-gui#readme"
+  "homepage": "https://github.com/Erkaman/pnp-gui#readme"
 }
