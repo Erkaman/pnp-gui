@@ -1,5 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-
 /* global requestAnimationFrame */
 
 var bunny = require('bunny');
@@ -12,20 +11,50 @@ var normals = require('normals');
 var createOrbitCamera = require('orbit-camera');
 var shell = require("gl-now")();
 var createGui = require("../index.js");
-var cameraPosFromViewMatrix  = require('gl-camera-pos-from-view-matrix');
+var cameraPosFromViewMatrix = require('gl-camera-pos-from-view-matrix');
 var dragon = require('stanford-dragon/3');
 var boundingBox = require('vertices-bounding-box');
-var tform = require('geo-3d-transform-mat4');
+var transform = require('geo-3d-transform-mat4');
 var randomArray = require('random-array');
 
 var demo1Shader, demo2Shader, bunnyGeo, dragonGeo, planeGeo;
 
-var camera = createOrbitCamera(
-    //[0,-15,0],
-    [0,-1000,0],
-    [0,0,0],
-    [0,1,0]
-)
+var camera = createOrbitCamera([0, -1000, 0], [0, 0, 0], [0, 1, 0]);
+
+var mouseLeftDownPrev = false;
+
+const RENDER_BUNNY = 0;
+const RENDER_DRAGON = 1;
+const DEMO_MODEL = 2;
+const DEMO_HEIGHTMAP = 3;
+
+/*
+ Variables that can be modified through the GUI.
+ */
+
+var bg = [0.6, 0.7, 1.0]; // clear color.
+var demo = {val: DEMO_MODEL};
+
+var demo1DiffuseColor = [0.42, 0.34, 0.0];
+var demo1AmbientLight = [0.77, 0.72, 0.59];
+var demo1LightColor = [0.40, 0.47, 0.0];
+var demo1SunDir = [-0.69, 1.33, 0.57];
+var demo1SpecularPower = {val: 12.45};
+var demo1HasSpecular = {val: true};
+var demo1RenderModel = {val: RENDER_BUNNY};
+
+var demo2AmbientLight = [0.85, 0.52, 0.66];
+var demo2LightColor = [0.38, 0.44, 0.03];
+var demo2SunDir = [1.35, 0.61, 1.12];
+var demo2SnowColor = [0.6, 0.6, 0.6];
+var demo2GrassColor = [0.12, 0.34, 0.12];
+var demo2SandColor = [0.50, 0.4, 0.21];
+var demo2HeightScale = {val: 200.0};
+var demo2NoiseScale = {val: 2.0};
+var demo2HeightmapPosition = [0.0, 0.0];
+
+var demo2TextureNoiseScale = {val: 0.3};
+var demo2TextureNoiseStrength = {val: 0.01};
 
 
 const demo1Vert = `
@@ -39,13 +68,12 @@ varying vec3 vPosition;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
-uniform mat4 uModel;
 
 void main() {
   vNormal = aNormal;
   vPosition = aPosition;
   
-  gl_Position = uProjection * uView * uModel* vec4(aPosition, 1.0);
+  gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }
 `
 
@@ -65,58 +93,52 @@ uniform float uSpecularPower;
 uniform float uHasSpecular;
 
 void main() {
-
     vec3 n = vNormal;
     vec3 l = normalize(uLightDir);
-    vec3 v = normalize(-(vPosition - uEyePos));
+    vec3 v = normalize(uEyePos - vPosition);
 
     vec3 ambient = uAmbientLight * uDiffuseColor;
     vec3 diffuse = uDiffuseColor * uLightColor * dot(n, l) ;
-    vec3 specular = pow(
-    clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
+    vec3 specular = pow(clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
     
     gl_FragColor = vec4(ambient + diffuse + specular*uHasSpecular, 1.0);
 }
 `
 
+// center geometry on (0,0,0)
 function centerGeometry(geo, scale) {
 
-// Calculate the bounding box.
-    var bb = boundingBox(geo.positions)
+    // Calculate the bounding box.
+    var bb = boundingBox(geo.positions);
 
-// Translate the geometry center to the origin.
-    var translate = [
-        -0.5 * (bb[0][0] + bb[1][0]),
-        -0.5 * (bb[0][1] + bb[1][1]),
-        -0.5 * (bb[0][2] + bb[1][2])
-    ]
-    var m = mat4.create()
-    mat4.scale(m, m, [scale, scale, scale])
-    mat4.translate(m, m, translate)
+    // Translate the geometry center to the origin.
+    var translate = [-0.5 * (bb[0][0] + bb[1][0]), -0.5 * (bb[0][1] + bb[1][1]), -0.5 * (bb[0][2] + bb[1][2])];
+    var m = mat4.create();
+    mat4.scale(m, m, [scale, scale, scale]);
+    mat4.translate(m, m, translate);
 
-    geo.positions = tform(geo.positions, m)
+    geo.positions = transform(geo.positions, m)
 }
 
-
+// create a flat plane, that's been tesselated into n quads(rendered as triangles) on the width and depth.
 function createPlane(n) {
     var positions = [];
     var cells = [];
 
-    for(var iy = 0; iy <= n; ++iy) {
-        for(var ix = 0; ix <= n; ++ix) {
-            var x = -1/2 + ix / n;
-            var y =  1/2 - iy / n;
+    for (var iy = 0; iy <= n; ++iy) {
+        for (var ix = 0; ix <= n; ++ix) {
+            var x = -1 / 2 + ix / n;
+            var y = 1 / 2 - iy / n;
             positions.push([x, 0, y]);
             if (iy < n && ix < n) {
-                cells.push([iy * (n+1) + ix + 1 , (iy + 1) * (n+1) + ix + 1, iy * (n+1) + ix]);
-                cells.push([iy * (n+1) + ix, (iy + 1) * (n+1) + ix + 1, (iy+1) * (n+1) + ix ]);
+                cells.push([iy * (n + 1) + ix + 1, (iy + 1) * (n + 1) + ix + 1, iy * (n + 1) + ix]);
+                cells.push([iy * (n + 1) + ix, (iy + 1) * (n + 1) + ix + 1, (iy + 1) * (n + 1) + ix]);
             }
         }
     }
 
     return {positions: positions, cells: cells};
 }
-
 
 shell.on("gl-init", function () {
     var gl = shell.gl
@@ -125,14 +147,13 @@ shell.on("gl-init", function () {
     gl.enable(gl.CULL_FACE);
 
     gui = new createGui(gl)
-    gui.windowSizes = [360, 550];
-
+    gui.windowSizes = [360, 580];
 
     centerGeometry(bunny, 80.0);
     bunnyGeo = Geometry(gl)
         .attr('aPosition', bunny.positions)
-    .attr('aNormal', normals.vertexNormals(bunny.cells, bunny.positions))
-    .faces(bunny.cells)
+        .attr('aNormal', normals.vertexNormals(bunny.cells, bunny.positions))
+        .faces(bunny.cells)
 
     centerGeometry(dragon, 16.0);
     dragonGeo = Geometry(gl)
@@ -140,7 +161,6 @@ shell.on("gl-init", function () {
         .attr('aNormal', normals.vertexNormals(dragon.cells, dragon.positions))
         .faces(dragon.cells)
 
-    // 200
     var plane = createPlane(200);
 
     planeGeo = Geometry(gl)
@@ -150,97 +170,51 @@ shell.on("gl-init", function () {
 
     demo1Shader = glShader(gl, demo1Vert, demo1Frag);
     demo2Shader = glShader(gl,
-        "precision mediump float;\n#define GLSLIFY 1\n\nattribute vec3 aPosition;\nattribute vec3 aNormal;\n\nvarying vec3 vNormal;\nvarying vec3 vColor;\nvarying float vHeight;\nvarying vec3 vPosition;\n\nuniform mat4 uProjection;\nuniform mat4 uView;\nuniform float uHeightScale;\nuniform float uNoiseScale;\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat snoise(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289(i); // Avoid truncation effects in permutation\n  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\nfloat height(vec2 coord) {\n return ( snoise(vec2(coord.xy)*uNoiseScale)) ;\n}\n\nfloat height(float x, float y) {\n    return height(vec2(x,y)) ;\n}\n\nvec3 getNormal(vec2 texCoord)\n{\n\n    float eps = 1e-5;\n    vec3 p = vec3(texCoord.x, 0.0, texCoord.y);\n\n    //eps on x axis.\n    vec3 va = vec3(2.0*eps, height(p.x+eps,p.z) - height(p.x-eps,p.z), 0.0 );\n\n    vec3 vb = vec3(0.0, height(p.x,p.z+eps) - height(p.x,p.z-eps), 2.0*eps );\n\n    // is there not some more optimal way of doing this?\n    // http://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map\n    vec3 n = normalize(cross(normalize(vb), normalize(va) ));\n\n  return(n);\n}\n\nvoid main() {\n  vNormal = getNormal(aPosition.xz);\n\n  float horizontalScale = 3000.0;\n\n  float h = height(aPosition.xz);\n  vHeight = h;\n\n  vec3 pos = vec3(horizontalScale, uHeightScale, horizontalScale)* vec3(aPosition.x,h ,aPosition.z);\n    vPosition = pos;\n\n  gl_Position = uProjection * uView* vec4(pos, 1.0);\n\n// vNormal = (vec3(height(aPosition.xz)*0.5 + 0.5));\n\n}",
-        "precision mediump float;\n#define GLSLIFY 1\n\nhighp float random(vec2 co)\n{\n    highp float a = 12.9898;\n    highp float b = 78.233;\n    highp float c = 43758.5453;\n    highp float dt= dot(co.xy ,vec2(a,b));\n    highp float sn= mod(dt,3.14);\n    return fract(sin(sn) * c);\n}\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat snoise(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289(i); // Avoid truncation effects in permutation\n  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\nvarying vec3 vNormal;\nvarying vec3 vColor;\nvarying float vHeight;\nvarying vec3 vPosition;\n\nuniform vec3 uAmbientLight;\nuniform vec3 uLightColor;\nuniform vec3 uLightDir;\n\nuniform vec3 uSnowColor;\nuniform vec3 uGrassColor;\nuniform vec3 uSandColor;\n\nuniform float uTextureNoiseScale;\nuniform float uTextureNoiseStrength;\n\nvec3 terrainColor() {\n\n    float snowHeight = 0.5;\n    float grassHeight = -0.4;\n\n    float s = 0.1;\n\n    vec3 snow = uSnowColor * smoothstep(snowHeight, snowHeight+s,  vHeight);\n    vec3 grass =\n       uGrassColor * (1.0-smoothstep(snowHeight, snowHeight+s, vHeight)) * (smoothstep(grassHeight, grassHeight+s, vHeight));\n    vec3 sand =\n       uSandColor * (1.0 - smoothstep(grassHeight, grassHeight+s, vHeight));\n\n    vec3 noise = vec3(snoise(uTextureNoiseScale*vec2(vPosition.x, vPosition.x+vPosition.y+vPosition.z))) ;\n\n    return (snow + grass + sand) + noise*uTextureNoiseStrength ;\n}\n\nvoid main() {\n\n    vec3 n = vNormal;\n    vec3 l = normalize(uLightDir);\n\n    vec3 diffuseColor = terrainColor();\n\n    vec3 ambient = uAmbientLight * diffuseColor;\n    vec3 diffuse = diffuseColor * uLightColor * dot(n, l) ;\n    \n   gl_FragColor = vec4(ambient + diffuse, 1.0);\n\n}\n");
+        "precision mediump float;\n#define GLSLIFY 1\n\nattribute vec3 aPosition;\nattribute vec3 aNormal;\n\nvarying vec3 vNormal;\nvarying vec3 vColor;\nvarying float vHeight;\nvarying vec3 vPosition;\n\nuniform mat4 uProjection;\nuniform mat4 uView;\nuniform float uHeightScale;\nuniform float uNoiseScale;\nuniform vec2 uPosition;\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat snoise(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289(i); // Avoid truncation effects in permutation\n  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\nfloat height(vec2 coord) {\n  return ( snoise(vec2(coord.xy)*uNoiseScale)) ;\n}\n\nfloat height(float x, float y) {\n  return height(vec2(x,y)) ;\n}\n\nvec3 getNormal(vec2 texCoord)\n{\n  float eps = 1e-5;\n  vec3 p = vec3(texCoord.x, 0.0, texCoord.y);\n\n  // approximate the derivatives by the method of finite differences.\n  vec3 va = vec3(2.0*eps, height(p.x+eps,p.z) - height(p.x-eps,p.z), 0.0 );\n  vec3 vb = vec3(0.0, height(p.x,p.z+eps) - height(p.x,p.z-eps), 2.0*eps );\n\n  return normalize(cross(normalize(vb), normalize(va) ));\n}\n\nvoid main() {\n  // compute normal, based on the noise.\n  vNormal = getNormal(aPosition.xz);\n\n  float h = height(aPosition.xz);\n\n  // output height.\n  vHeight = h;\n\n  float horizontalScale = 3000.0;\n\n  // now use the height value to modify the originally flat plane.\n  vec3 pos =\n    100.0 * vec3(uPosition.x, 0.0, uPosition.y) +\n    vec3(horizontalScale, uHeightScale, horizontalScale)* vec3(aPosition.x,h ,aPosition.z);\n\n  // output pos.\n  vPosition = pos;\n  gl_Position = uProjection * uView* vec4(pos, 1.0);\n\n// vNormal = (vec3(height(aPosition.xz)*0.5 + 0.5));\n\n}",
+        "precision mediump float;\n#define GLSLIFY 1\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute(vec3 x) {\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nfloat snoise(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289(i); // Avoid truncation effects in permutation\n  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\nvarying vec3 vNormal;\nvarying vec3 vColor;\nvarying float vHeight;\nvarying vec3 vPosition;\n\nuniform vec3 uAmbientLight;\nuniform vec3 uLightColor;\nuniform vec3 uLightDir;\n\nuniform vec3 uSnowColor;\nuniform vec3 uGrassColor;\nuniform vec3 uSandColor;\n\nuniform float uTextureNoiseScale;\nuniform float uTextureNoiseStrength;\n\nvec3 terrainColor() {\n\n    float snowHeight = 0.5;\n    float grassHeight = -0.4;\n\n     // interpolation area size.\n    float s = 0.1;\n\n    // use smooth step functions to interpolate between the three colors.\n    vec3 snow = uSnowColor * smoothstep(snowHeight, snowHeight+s,  vHeight);\n    vec3 grass =\n       uGrassColor * (1.0-smoothstep(snowHeight, snowHeight+s, vHeight)) * (smoothstep(grassHeight, grassHeight+s, vHeight));\n    vec3 sand =\n       uSandColor * (1.0 - smoothstep(grassHeight, grassHeight+s, vHeight));\n\n    // add some noise for some visual variation.\n    vec3 noise = vec3(snoise(uTextureNoiseScale*vec2(vPosition.x, vPosition.x+vPosition.y+vPosition.z))) ;\n\n    return (snow + grass + sand) + noise*uTextureNoiseStrength ;\n}\n\nvoid main() {\n\n    vec3 n = vNormal;\n    vec3 l = normalize(uLightDir);\n    vec3 diffuseColor = terrainColor();\n\n    vec3 ambient = uAmbientLight * diffuseColor;\n    vec3 diffuse = diffuseColor * uLightColor * dot(n, l) ;\n    \n    gl_FragColor = vec4(ambient + diffuse, 1.0);\n}\n");
 
-})
-
-var prev = false;
-
-const RENDER_BUNNY = 0;
-const RENDER_DRAGON = 1;
-const DEMO_MODEL = 2;
-const DEMO_HEIGHTMAP = 3;
-
-
-var bg = [0.6, 0.7, 1.0];
-var demo = {val: DEMO_MODEL};
-
-var demo1DiffuseColor = [0.7, 0.7, 0.7];
-var demo1AmbientLight = [0.3, 0.3, 0.3];
-var demo1LightColor = [0.4, 0.0, 0.0];
-var demo1SunDir = [0.71, 0.71, 0];
-var demo1SpecularPower = {val: 4.0};
-var demo1HasSpecular = {val: true};
-var demo1RenderModel = {val: RENDER_BUNNY};
-
-
-
-var demo2AmbientLight = [ 0.85, 0.52, 0.66];
-var demo2LightColor = [ 0.38, 0.44, 0.03];
-var demo2SunDir = [1.35, 0.61, 1.12];
-var demo2SnowColor = [0.6, 0.6, 0.6] ;
-var demo2GrassColor = [0.12, 0.34, 0.12] ;
-var demo2SandColor = [0.50, 0.4, 0.21] ;
-var demo2HeightScale = {val: 200.0 };
-var demo2NoiseScale = {val: 2.0};
-
-
-var demo2TextureNoiseScale = { val:0.3 };
-var demo2TextureNoiseStrength = { val:0.01 };
-
-
+});
 
 function demo1Randomize() {
-    demo1DiffuseColor = randomArray(0,1).oned(3);
-    demo1AmbientLight = randomArray(0,1).oned(3);
-    demo1LightColor = randomArray(0,1).oned(3);
-    demo1SunDir = randomArray(-2,+2).oned(3);
-    demo1SpecularPower.val = Math.round(randomArray(0,40).oned(1)[0]);
+    demo1DiffuseColor = randomArray(0, 1).oned(3);
+    demo1AmbientLight = randomArray(0, 1).oned(3);
+    demo1LightColor = randomArray(0, 1).oned(3);
+    demo1SunDir = randomArray(-2, +2).oned(3);
+    demo1SpecularPower.val = Math.round(randomArray(0, 40).oned(1)[0]);
 }
 
-
 function demo2RandomizeLighting() {
-    demo2AmbientLight = randomArray(0,1).oned(3);
-    demo2LightColor = randomArray(0,1).oned(3);
-    demo2SunDir = randomArray(0,+2).oned(3);
+    demo2AmbientLight = randomArray(0, 1).oned(3);
+    demo2LightColor = randomArray(0, 1).oned(3);
+    demo2SunDir = randomArray(0, +2).oned(3);
 }
 
 function demo2RandomizeColor() {
-    demo2SnowColor = randomArray(0,1).oned(3);
-    demo2GrassColor = randomArray(0,1).oned(3);
-    demo2SandColor = randomArray(0,1).oned(3);
+    demo2SnowColor = randomArray(0, 1).oned(3);
+    demo2GrassColor = randomArray(0, 1).oned(3);
+    demo2SandColor = randomArray(0, 1).oned(3);
 }
 
-// ();
-
 shell.on("gl-render", function (t) {
-
     var gl = shell.gl
-
     var canvas = shell.canvas;
 
     gl.clearColor(bg[0], bg[1], bg[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-
     var model = mat4.create();
     var projection = mat4.create();
-    var scratch = mat4.create();
-    var view = camera.view(scratch);
-    mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 10000.0);
-
+    var scratchMat = mat4.create();
+    var view = camera.view(scratchMat);
     var scratchVec = vec3.create();
 
+    mat4.perspective(projection, Math.PI / 2, canvas.width / canvas.height, 0.1, 10000.0);
 
-
-    if( demo.val == DEMO_MODEL) {
-
+    if (demo.val == DEMO_MODEL) {
         demo1Shader.bind();
 
         demo1Shader.uniforms.uView = view;
-        demo1Shader.uniforms.uModel = model;
         demo1Shader.uniforms.uProjection = projection;
         demo1Shader.uniforms.uDiffuseColor = demo1DiffuseColor;
         demo1Shader.uniforms.uAmbientLight = demo1AmbientLight;
@@ -250,18 +224,14 @@ shell.on("gl-render", function (t) {
         demo1Shader.uniforms.uSpecularPower = demo1SpecularPower.val;
         demo1Shader.uniforms.uHasSpecular = demo1HasSpecular.val ? 1.0 : 0.0;
 
-
         if (demo1RenderModel.val == RENDER_BUNNY) {
-
             bunnyGeo.bind(demo1Shader);
             bunnyGeo.draw();
         } else if (demo1RenderModel.val == RENDER_DRAGON) {
             dragonGeo.bind(demo1Shader);
             dragonGeo.draw();
         }
-
     } else {
-
         demo2Shader.bind();
 
         demo2Shader.uniforms.uView = view;
@@ -277,10 +247,10 @@ shell.on("gl-render", function (t) {
 
         demo2Shader.uniforms.uHeightScale = demo2HeightScale.val;
         demo2Shader.uniforms.uNoiseScale = demo2NoiseScale.val;
+        demo2Shader.uniforms.uPosition = demo2HeightmapPosition;
 
         demo2Shader.uniforms.uTextureNoiseScale = demo2TextureNoiseScale.val;
         demo2Shader.uniforms.uTextureNoiseStrength = demo2TextureNoiseStrength.val;
-
 
         planeGeo.bind(demo2Shader);
         planeGeo.draw();
@@ -289,29 +259,24 @@ shell.on("gl-render", function (t) {
     var pressed = shell.wasDown("mouse-left");
     var io = {
         mouseLeftDownCur: pressed,
-        mouseLeftDownPrev: prev,
+        mouseLeftDownPrev: mouseLeftDownPrev,
 
-        mousePosition:shell.mouse,
-        mousePositionPrev:shell.prevMouse};
-    prev = pressed;
+        mousePosition: shell.mouse,
+        mousePositionPrev: shell.prevMouse
+    };
+    mouseLeftDownPrev = pressed;
 
     gui.begin(io, "Window");
-
 
     gui.textLine("Choose a Demo");
     gui.radioButton("Model", demo, DEMO_MODEL);
     gui.sameLine();
     gui.radioButton("Heightmap", demo, DEMO_HEIGHTMAP);
-
-
     gui.separator();
 
-
-
-    if( demo.val == DEMO_MODEL) {
+    if (demo.val == DEMO_MODEL) {
 
         gui.textLine("Lighting Settings");
-
 
         gui.radioButton("Bunny", demo1RenderModel, RENDER_BUNNY);
         gui.sameLine();
@@ -325,32 +290,28 @@ shell.on("gl-render", function (t) {
         if (demo1HasSpecular.val)
             gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
 
-        gui.draggerFloat3("Light Direction", demo1SunDir, [[-2, +2]], ["X:", "Y:", "Z:"]);
+        gui.draggerFloat3("Light Direction", demo1SunDir, [-2, +2], ["X:", "Y:", "Z:"]);
 
         if (gui.button("Randomize")) {
             demo1Randomize();
         }
     } else {
-
         gui.textLine("Lighting Settings");
 
         gui.draggerRgb("Ambient Light", demo2AmbientLight);
         gui.draggerRgb("Light Color", demo2LightColor);
-        gui.draggerFloat3("Light Direction", demo2SunDir, [[0, +2]], ["X:", "Y:", "Z:"]);
-
-
+        gui.draggerFloat3("Light Direction", demo2SunDir, [0, +2], ["X:", "Y:", "Z:"]);
 
         if (gui.button("Randomize")) {
             demo2RandomizeLighting();
         }
-
-
         gui.separator();
 
         gui.textLine("Heightmap Geometry");
 
-        gui.sliderFloat("Height Scale", demo2HeightScale, 0, 400 );
-        gui.sliderFloat("Noise Scale", demo2NoiseScale, 0, 20.0 );
+        gui.sliderFloat("Height Scale", demo2HeightScale, 0, 400);
+        gui.sliderFloat("Noise Scale", demo2NoiseScale, 0, 20.0);
+        gui.draggerFloat2("Position", demo2HeightmapPosition, [-10, +10], ["X:", "Z:"]);
 
         gui.separator();
 
@@ -365,10 +326,8 @@ shell.on("gl-render", function (t) {
             demo2RandomizeColor();
         }
 
-        gui.sliderFloat("Color Noise Scale", demo2TextureNoiseScale, 0.01, 0.4 );
-        gui.sliderFloat("Color Noise Strength", demo2TextureNoiseStrength, 0.01, 0.2 );
-
-
+        gui.sliderFloat("Color Noise Scale", demo2TextureNoiseScale, 0.01, 0.4);
+        gui.sliderFloat("Color Noise Strength", demo2TextureNoiseStrength, 0.01, 0.2);
     }
 
     gui.separator();
@@ -376,104 +335,32 @@ shell.on("gl-render", function (t) {
     gui.textLine("Miscellaneous");
     gui.draggerRgb("Background", bg);
 
+    gui.end(gl, canvas.width, canvas.height);
+});
 
+shell.on("tick", function () {
 
-    gui.end(gl,  canvas.width, canvas.height);
-})
-
-shell.on("tick", function() {
-
-    if(gui.hasMouseFocus() )
+    // if interacting with the GUI, do not let the mouse control the camera.
+    if (gui.hasMouseFocus())
         return;
 
-    if(shell.wasDown("mouse-left")) {
-
-        var speed  = 2.0;
-        camera.rotate([ (shell.mouseX/shell.width-0.5)*speed, (shell.mouseY/shell.height-0.5)*speed ],
-            [ (shell.prevMouseX/shell.width-0.5)*speed, (shell.prevMouseY/shell.height-0.5)*speed ])
+    if (shell.wasDown("mouse-left")) {
+        var speed = 2.0;
+        camera.rotate([(shell.mouseX / shell.width - 0.5) * speed, (shell.mouseY / shell.height - 0.5) * speed],
+            [(shell.prevMouseX / shell.width - 0.5) * speed, (shell.prevMouseY / shell.height - 0.5) * speed])
     }
-    if(shell.scroll[1]) {
+    if (shell.scroll[1]) {
         camera.zoom(shell.scroll[1] * 0.6);
     }
-})
-
-
-/*
-
-
- var intValue = {val: 5 };
- var floatValue = {val: 5.54 };
- var boolValue1 = {val: true };
- var boolValue2 = {val: false };
- var boolValue3 = {val: true };
- var boolValue4 = {val: false };
- var bg = [0.6, 0.7, 1.0];
- var radioButtonValue = {val: 1};
- var radioButtonValue2 = {val: 0};
-
-
-
-
-
- gui.textLine("Hello World!");
-
-
- if(gui.button("Eric Arneback")) {
- console.log("button");
- }
-
-
- gui.button("Button");
- gui.sameLine();
- gui.button("Lorem Ipsum");
-
- gui.button("NUM_SAMPLES");
-
- gui.textLine("A Text Line");
-
- gui.button("1234567890.012");
-
-
- gui.sliderInt("SAMPLES2", intValue, 2, 13);
- gui.sliderFloat("density", floatValue, 3, 19);
-
- gui.button("1234567890.012");
-
- gui.checkbox("LABEL", boolValue1);
- gui.sameLine();
- gui.checkbox("LABEL2", boolValue2);
- gui.sameLine();
- gui.checkbox("LABEL3", boolValue3);
- gui.checkbox("LABEL4", boolValue4);
-
-
- gui.sliderFloat("density", floatValue, 3, 19);
-
- gui.button("lol");
- gui.textLine("Another one");
-
- gui.radioButton("a", radioButtonValue, 0);
- gui.sameLine();
- gui.radioButton("b", radioButtonValue, 1);
- gui.sameLine();
- gui.radioButton("c", radioButtonValue, 2);
-
-
- gui.radioButton("x", radioButtonValue2, 0);
- gui.radioButton("y", radioButtonValue2, 1);
- gui.radioButton("z", radioButtonValue2, 2);
-
-
-
- */
+});
 },{"../index.js":4,"bunny":11,"geo-3d-transform-mat4":23,"gl-camera-pos-from-view-matrix":29,"gl-geometry":33,"gl-mat4":44,"gl-now":69,"gl-shader":70,"gl-vec3":94,"normals":133,"orbit-camera":134,"random-array":153,"stanford-dragon/3":156,"vertices-bounding-box":159}],2:[function(require,module,exports){
-module.exports=require('ndpack-image')(256,256,4,"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")
+module.exports=require('ndpack-image')(256,256,4,"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")
 
 },{"ndpack-image":132}],3:[function(require,module,exports){
 module.exports = {"chars":[{"x0":1,"y0":1,"x1":1,"y1":1,"xoff":0.000000,"yoff":0.000000,"xadvance":7.000000,"xoff2":0.000000,"yoff2":0.000000},{"x0":2,"y0":1,"x1":3,"y1":9,"xoff":3.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":0.000000},{"x0":4,"y0":1,"x1":7,"y1":4,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":-6.000000},{"x0":8,"y0":1,"x1":15,"y1":9,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":16,"y0":1,"x1":21,"y1":10,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":1.000000},{"x0":22,"y0":1,"x1":29,"y1":9,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":30,"y0":1,"x1":36,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":37,"y0":1,"x1":38,"y1":4,"xoff":3.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":-6.000000},{"x0":39,"y0":1,"x1":42,"y1":12,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":2.000000},{"x0":43,"y0":1,"x1":46,"y1":12,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":2.000000},{"x0":47,"y0":1,"x1":52,"y1":6,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":-1.000000},{"x0":53,"y0":1,"x1":58,"y1":6,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":-1.000000},{"x0":59,"y0":1,"x1":61,"y1":5,"xoff":1.000000,"yoff":-2.000000,"xadvance":7.000000,"xoff2":3.000000,"yoff2":2.000000},{"x0":62,"y0":1,"x1":67,"y1":2,"xoff":1.000000,"yoff":-4.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":-3.000000},{"x0":68,"y0":1,"x1":69,"y1":3,"xoff":2.000000,"yoff":-2.000000,"xadvance":7.000000,"xoff2":3.000000,"yoff2":0.000000},{"x0":70,"y0":1,"x1":75,"y1":11,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":1.000000},{"x0":76,"y0":1,"x1":81,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":82,"y0":1,"x1":87,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":88,"y0":1,"x1":93,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":94,"y0":1,"x1":99,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":100,"y0":1,"x1":106,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":107,"y0":1,"x1":112,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":113,"y0":1,"x1":118,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":119,"y0":1,"x1":124,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":125,"y0":1,"x1":130,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":131,"y0":1,"x1":136,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":137,"y0":1,"x1":138,"y1":7,"xoff":3.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":0.000000},{"x0":139,"y0":1,"x1":141,"y1":9,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":3.000000,"yoff2":2.000000},{"x0":142,"y0":1,"x1":148,"y1":6,"xoff":0.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":-1.000000},{"x0":149,"y0":1,"x1":155,"y1":4,"xoff":1.000000,"yoff":-5.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":-2.000000},{"x0":156,"y0":1,"x1":162,"y1":6,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":-1.000000},{"x0":163,"y0":1,"x1":168,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":169,"y0":1,"x1":176,"y1":9,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":177,"y0":1,"x1":183,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":184,"y0":1,"x1":190,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":191,"y0":1,"x1":197,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":198,"y0":1,"x1":204,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":205,"y0":1,"x1":210,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":211,"y0":1,"x1":216,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":217,"y0":1,"x1":223,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":224,"y0":1,"x1":230,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":231,"y0":1,"x1":234,"y1":9,"xoff":2.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":0.000000},{"x0":235,"y0":1,"x1":239,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":0.000000},{"x0":240,"y0":1,"x1":246,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":247,"y0":1,"x1":252,"y1":9,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":1,"y0":13,"x1":8,"y1":21,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":9,"y0":13,"x1":15,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":16,"y0":13,"x1":22,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":23,"y0":13,"x1":28,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":29,"y0":13,"x1":35,"y1":22,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":1.000000},{"x0":36,"y0":13,"x1":42,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":43,"y0":13,"x1":49,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":50,"y0":13,"x1":57,"y1":21,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":58,"y0":13,"x1":64,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":65,"y0":13,"x1":72,"y1":21,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":73,"y0":13,"x1":80,"y1":21,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":81,"y0":13,"x1":87,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":88,"y0":13,"x1":95,"y1":21,"xoff":0.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":96,"y0":13,"x1":102,"y1":21,"xoff":1.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":103,"y0":13,"x1":106,"y1":24,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":2.000000},{"x0":107,"y0":13,"x1":112,"y1":23,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":1.000000},{"x0":113,"y0":13,"x1":116,"y1":24,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":2.000000},{"x0":117,"y0":13,"x1":122,"y1":19,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":-3.000000},{"x0":123,"y0":13,"x1":130,"y1":14,"xoff":0.000000,"yoff":0.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":1.000000},{"x0":131,"y0":13,"x1":133,"y1":15,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":-7.000000},{"x0":134,"y0":13,"x1":139,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":140,"y0":13,"x1":145,"y1":22,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":146,"y0":13,"x1":151,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":152,"y0":13,"x1":157,"y1":22,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":158,"y0":13,"x1":163,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":164,"y0":13,"x1":169,"y1":22,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":170,"y0":13,"x1":175,"y1":22,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":3.000000},{"x0":176,"y0":13,"x1":181,"y1":22,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":182,"y0":13,"x1":184,"y1":22,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":0.000000},{"x0":185,"y0":13,"x1":189,"y1":24,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":5.000000,"yoff2":2.000000},{"x0":190,"y0":13,"x1":195,"y1":22,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":196,"y0":13,"x1":198,"y1":22,"xoff":2.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":0.000000},{"x0":199,"y0":13,"x1":206,"y1":19,"xoff":0.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":207,"y0":13,"x1":212,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":213,"y0":13,"x1":218,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":219,"y0":13,"x1":224,"y1":22,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":3.000000},{"x0":225,"y0":13,"x1":230,"y1":22,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":3.000000},{"x0":231,"y0":13,"x1":236,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":237,"y0":13,"x1":242,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":243,"y0":13,"x1":247,"y1":21,"xoff":2.000000,"yoff":-8.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":248,"y0":13,"x1":253,"y1":19,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":1,"y0":25,"x1":6,"y1":31,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":7,"y0":25,"x1":14,"y1":31,"xoff":0.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":0.000000},{"x0":15,"y0":25,"x1":20,"y1":31,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":21,"y0":25,"x1":26,"y1":34,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":3.000000},{"x0":27,"y0":25,"x1":32,"y1":31,"xoff":1.000000,"yoff":-6.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":0.000000},{"x0":33,"y0":25,"x1":38,"y1":36,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":2.000000},{"x0":39,"y0":25,"x1":40,"y1":36,"xoff":3.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":4.000000,"yoff2":2.000000},{"x0":41,"y0":25,"x1":46,"y1":36,"xoff":1.000000,"yoff":-9.000000,"xadvance":7.000000,"xoff2":6.000000,"yoff2":2.000000},{"x0":47,"y0":25,"x1":54,"y1":27,"xoff":0.000000,"yoff":-5.000000,"xadvance":7.000000,"xoff2":7.000000,"yoff2":-3.000000}]}
 },{}],4:[function(require,module,exports){
 /*
-Require dependencies
+ Require dependencies
  */
 var createShader = require("gl-shader");
 var mat4 = require("gl-mat4");
@@ -483,7 +370,7 @@ var clamp = require('clamp');
 var createBuffer = require('gl-buffer');
 
 /*
-Require resources.
+ Require resources.
  */
 var fontInfo = require("./font_info.js");
 var fontAtlas = require("./font_atlas.js");
@@ -494,15 +381,18 @@ var shaders = require("./shaders.js");
  */
 function GUI(gl) {
 
-    this.shader = createShader(gl, shaders.vert, shaders.frag)
+    /*
+     We use this single shader to render the GUI.
+     */
+    this.shader = createShader(gl, shaders.vert, shaders.frag);
 
     /*
-    These buffers contain all the geometry data.
+     These buffers contain all the geometry data.
      */
-    this.positionBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
-    this.colorBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
-    this.uvBufferObject = createBuffer(gl , [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
-    this.indexBufferObject = createBuffer(gl , [], gl.ELEMENT_ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.positionBufferObject = createBuffer(gl, [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.colorBufferObject = createBuffer(gl, [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.uvBufferObject = createBuffer(gl, [], gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+    this.indexBufferObject = createBuffer(gl, [], gl.ELEMENT_ARRAY_BUFFER, gl.DYNAMIC_DRAW);
 
 
     this._setupDefaultSettings();
@@ -511,97 +401,406 @@ function GUI(gl) {
     this.fontAtlasTexture.magFilter = gl.LINEAR;
     this.fontAtlasTexture.minFilter = gl.LINEAR;
 
+    /*
+    DO NOT CHANGE THIS VALUE. The entire GUI layout will break!
+     */
     this.textScale = 1.0;
 
     /*
-    Keeps track of the ID of the widget that is currently being pressed down.
-    We need to keep track of this, because otherwise we can't, for instance,  affect the value of a
-    slider while the mouse is OUTSIDE the hitbox of the slider.
+     Keeps track of the ID of the widget that is currently being pressed down.
+     We need to keep track of this, because otherwise we can't, for instance,  affect the value of a
+     slider while the mouse is OUTSIDE the hitbox of the slider.
      */
     this.activeWidgetId = null;
 
     /*
-    See _moveWindowCaret() for an explanation.
+     See _moveWindowCaret() for an explanation.
      */
     this.sameLineActive = false;
     this.prevWidgetSizes = null;
 }
 
 
+GUI.prototype.sameLine = function () {
+    this.sameLineActive = true;
+};
+
+GUI.prototype.sliderFloat = function (str, value, min, max) {
+    this._slider(str, value, min, max, false);
+};
+
+GUI.prototype.sliderInt = function (str, value, min, max) {
+    this._slider(str, value, min, max, true);
+};
+
+GUI.prototype.draggerFloat4 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 4, minMaxValues, subLabels);
+};
+
+GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
+};
+
+GUI.prototype.draggerFloat2 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 2, minMaxValues, subLabels);
+};
+
+
+GUI.prototype.draggerFloat1 = function (labelStr, value, minMaxValues, subLabels) {
+    this._draggerFloatN(labelStr, value, 1, minMaxValues, subLabels);
+};
+
+GUI.prototype.draggerRgb = function (labelStr, value) {
+    this._draggerFloatN(
+        labelStr, value, 3, [0, 1], ["R:", "G:", "B:"],
+        [
+            [this.draggerRgbRedColor, this.draggerRgbRedColorHover],
+            [this.draggerRgbGreenColor, this.draggerRgbGreenColorHover],
+            [this.draggerRgbBlueColor, this.draggerRgbBlueColorHover]
+        ]);
+};
+
+/*
+ If value.val == id, then that means this radio button is chosen.
+ */
+GUI.prototype.radioButton = function (labelStr, value, id) {
+
+    this._moveWindowCaret();
+
+    /*
+     Radio button IO
+     */
+
+
+    var zeroHeight = this._getTextSizes("0")[1];
+
+
+    var innerRadius = (zeroHeight * this.radioButtonInnerRadius);
+    var outerRadius = (zeroHeight * this.radioButtonOuterRadius);
+
+
+    var radioButtonPosition = this.windowCaret;
+
+
+    var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
+
+    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
+
+
+    if (this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
+        value.val = id;
+    }
+
+    var isHover = mouseCollision;
+
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    this._circle(radioButtonPosition, radioButtonSizes,
+        isHover ? this.radioButtonOuterColorHover : this.radioButtonOuterColor, this.radioButtonCircleSegments );
+
+
+    if (value.val == id) {
+        var p = radioButtonPosition;
+        var s = radioButtonSizes;
+        var innerCirclePosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerRadius * 2 )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerRadius * 2 )),
+        ];
+
+        this._circle(innerCirclePosition, [innerRadius * 2, innerRadius * 2],
+            isHover ? this.radioButtonInnerColorHover : this.radioButtonInnerColor, this.radioButtonCircleSegments );
+    }
+
+
+    // now render radio button label.
+    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.widgetLabelHorizontalSpacing, radioButtonPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0], radioButtonSizes[1]];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+    this.prevWidgetSizes = [radioButtonSizes[0] + labelStrSizes[0], radioButtonSizes[1]];
+}
+
+
+GUI.prototype.checkbox = function (labelStr, value) {
+
+    this._moveWindowCaret();
+
+    /*
+     CHECKBOX IO(if checkbox clicked, flip boolean value.)
+     */
+
+    // use height of zero to determine size of checkbox, to ensure that the textl label does become higher
+    // than the checkbox.
+    var zeroHeight = this._getTextSizes("0")[1];
+
+
+    var innerSize = zeroHeight * this.checkBoxInnerSizeRatio;
+    var outerSize = zeroHeight * this.checkBoxOuterSizeRatio;
+
+    var checkboxPosition = this.windowCaret;
+    var checkboxSizes = [outerSize, outerSize];
+
+    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
+
+    if (this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
+        value.val = !value.val;
+    }
+
+    var isHover = mouseCollision;
+
+    /*
+     CHECKBOX RENDERING
+     */
+
+    // render outer box.
+    this._box(
+        checkboxPosition,
+        checkboxSizes, isHover ? this.checkboxOuterColorHover : this.checkboxOuterColor);
+
+
+    // now render a centered inner box, that shows whether the checkbox is true, or false.
+
+    if (value.val) {
+        var p = checkboxPosition;
+        var s = checkboxSizes;
+        var innerboxPosition = [
+            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerSize )),
+            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerSize )),
+        ];
+
+        this._box(
+            innerboxPosition,
+            [innerSize, innerSize], isHover ? this.checkboxInnerColorHover : this.checkboxInnerColor);
+    }
+
+    // now render checkbox label.
+    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.widgetLabelHorizontalSpacing, checkboxPosition[1]]
+    var labelStrSizes = [this._getTextSizes(labelStr)[0], checkboxSizes[1]];
+    this._textCenter(labelPosition, labelStrSizes, labelStr);
+
+    this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0], checkboxSizes[1]];
+}
+
+
+GUI.prototype.button = function (str) {
+
+    this._moveWindowCaret();
+
+    var widgetId = hashString(str);
+
+    /*
+     BUTTON RENDERING
+     */
+
+    var buttonPosition = this.windowCaret;
+
+    var textSizes = this._getTextSizes(str);
+
+    // button size is text size, plus the spacing around the text.
+    var buttonSizes = [
+        textSizes[0] + this.buttonSpacing * 2,
+        textSizes[1] + this.buttonSpacing * 2
+    ];
+
+    var color;
+    var isButtonClick = false;
+
+    // we can only hover or click, when are not interacting with some other widget.
+    if ((this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
+
+        if (this.io.mouseLeftDownPrev && !this.io.mouseLeftDownCur) {
+
+            isButtonClick = true;
+            color = this.clickButtonColor;
+        } else if (this.io.mouseLeftDownCur) {
+
+            color = this.clickButtonColor;
+            this.activeWidgetId = widgetId;
+        } else {
+            color = this.hoverButtonColor;
+        }
+
+
+    } else {
+        color = this.buttonColor
+    }
+
+    this._box(
+        buttonPosition,
+        buttonSizes, color)
+
+    // Render button text.
+    this._text([buttonPosition[0] + this.buttonSpacing,
+        buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
+
+
+    this.prevWidgetSizes = (buttonSizes);
+
+
+    /*
+     BUTTON IO
+     If button is pressed, return true;
+     Otherwise, return false.
+     */
+
+
+    if (isButtonClick) {
+        return true; // button press!
+    }
+
+    return false;
+}
+
+
+GUI.prototype.separator = function () {
+    this._moveWindowCaret();
+
+    var separatorPosition = this.windowCaret;
+    // the separator should fill out the windows size.
+    var separatorSizes = [
+        this.windowSizes[0] - 2 * this.windowSpacing,
+        this._getTextSizes("0")[1] *  this.separatorHeightRatio];
+
+    this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4]);
+
+    this.prevWidgetSizes = (separatorSizes);
+}
+
+
+GUI.prototype.textLine = function (str) {
+    this._moveWindowCaret();
+
+    var textLinePosition = this.windowCaret;
+    var textSizes = this._getTextSizes(str);
+
+    // Render button text.
+    this._textCenter(textLinePosition, textSizes, str);
+
+    this.prevWidgetSizes = textSizes;
+};
+
+GUI.prototype.begin = function (io, windowTitle) {
+
+    this.windowTitle = windowTitle;
+
+    /*
+    Setup geometry buffers.
+     */
+    this.indexBuffer = [];
+    this.positionBuffer = [];
+    this.colorBuffer = [];
+    this.uvBuffer = [];
+
+    this.indexBufferIndex = 0;
+    this.positionBufferIndex = 0;
+    this.colorBufferIndex = 0;
+    this.uvBufferIndex = 0;
+
+    this.io = io;
+
+    // render window.
+    this._window();
+};
+
+
+GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
+
+    /*
+     If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
+     when calling vertexAttribPointer, which means that we would effectively corrupt the user data!
+     */
+    var VAO_ext = gl.getExtension('OES_vertex_array_object');
+    if (VAO_ext)
+        VAO_ext.bindVertexArrayOES(null);
+
+    /*
+     We are changing some GL states when rendering the GUI. So before rendering we backup these states,
+     and after rendering we restore these states. This is so that the end-user does not involuntarily have his
+     GL-states messed with.
+     */
+    this._backupGLState(gl);
+
+
+    this.positionBufferObject.update(this.positionBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location);
+    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0);
+    this.positionBufferObject.unbind();
+
+
+    this.colorBufferObject.update(this.colorBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
+    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 4, gl.FLOAT, false, 0, 0);
+    this.colorBufferObject.unbind();
+
+    this.uvBufferObject.update(this.uvBuffer);
+    gl.enableVertexAttribArray(this.shader.attributes.aUv.location);
+    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0);
+    this.uvBufferObject.unbind();
+
+    this.indexBufferObject.update(this.indexBuffer);
+
+
+    /*
+     Setup matrices.
+     */
+    var projection = mat4.create()
+    mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
+
+    this.shader.bind()
+
+    this.shader.uniforms.uProj = projection;
+    this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
+
+    gl.disable(gl.DEPTH_TEST) // no depth testing; we handle this by manually placing out
+    // widgets in the order we wish them to be rendered.
+
+
+    // for text rendering, enable alpha blending.
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+    gl.drawElements(gl.TRIANGLES, (this.indexBufferIndex), gl.UNSIGNED_SHORT, 0);
+
+
+    /*
+     Make sure to always reset the active widget id, if mouse is released.
+     This makes sure that every widget does not explicitly have to reset this value
+     by themselves, which is a bit error-prone.
+     */
+    if (this.activeWidgetId != null && this.io.mouseLeftDownCur == false) {
+        this.activeWidgetId = null;
+    }
+
+
+    this._restoreGLState(gl);
+
+};
+
+
+/*
+ Mouse has focus EITHER when the mouse is inside the window, OR
+ it is outside the window, but is interacting with a widget.
+ */
+GUI.prototype.hasMouseFocus = function () {
+    return this.mouseInWindow || this.activeWidgetId != null;
+}
+
+
+
 GUI.prototype._setupDefaultSettings = function (char) {
+
+    /*
+    window settings
+     */
 
     // distance from window-borders to the widgets.
     this.windowSpacing = 14;
 
-    // the vertical spacing between the widgets.
+    // the vertical and horizontal spacing between the widgets.
     this.widgetSpacing = 11;
-
-    // the horizontal and vertical spacing between the button border and its text label.
-    this.buttonSpacing = 3;
-    this.buttonColor =  [0.35, 0.1, 0.1];
-    this.hoverButtonColor = [0.40, 0.1, 0.1];
-    this.clickButtonColor =  [0.50, 0.1, 0.1];
-
-    // the vertical space between the number and the border of the slider box.
-    this.sliderVerticalSpacing = 4;
-    // the horizontal space between the slider and its label.
-    this.sliderLabelSpacing = 4;
-    // the slider is dynamically scaled to occupy this much of the window width.
-    this.sliderWindowRatio = 0.6;
-    // the color of the slider background.
-    this.sliderBackgroundColor = [0.16 ,0.16, 0.16];
-    // the color of the bar in the slider.
-    this.sliderFillColor =  [0.0 ,0.3, 0.7];
-    // the color of the slider background when hover,
-    this.sliderBackgroundColorHover = [0.19 ,0.19, 0.19];
-    // the color of the bar in the slider when hover.
-    this.sliderFillColorHover =  [0.0 ,0.4, 0.8];
-    // the number of decimal digits that the slider value is displayed with.
-    this.sliderValueNumDecimalDigits =  2;
-
-    // the vertical spacing between the three color dragger widgets in the rgbSlider widget.
-    this.draggerWidgetSpacing = 3;
-    // the horizontal spacing between the top and bottom borders and the text in the color draggers.
-    this.draggerSpacing = 5;
-
-    /*
-     The colors of the three draggers in the rgbDragger widget.
-     "Hover", refers to the color when the dragger is hovered.
-     */
-    this.draggerRgbRedColor =        [0.3, 0.0, 0.0];
-    this.draggerRgbRedColorHover =   [0.35, 0.0, 0.0];
-    this.draggerRgbGreenColor =      [0.0, 0.3, 0.0];
-    this.draggerRgbGreenColorHover = [0.0, 0.35, 0.0];
-    this.draggerRgbBlueColor =       [0.0, 0.0, 0.3];
-    this.draggerRgbBlueColorHover =  [0.0, 0.0, 0.38];
-
-    /*
-     The colors of the draggers in the draggerFloat widgets.
-     "Hover", refers to the color when the dragger is hovered.
-     */
-    this.draggerFloatColor =        [0.30, 0.30, 0.30];
-    this.draggerFloatColorHover =   [0.32, 0.32, 0.32];
-
-
-    /*
-     the outer color is the color of the box of the checkbox,
-     and the inner color is the color of the actual checkbox.
-     */
-    this.checkboxOuterColor = [0.3 ,0.3, 0.3];
-    this.checkboxInnerColor = [0.15 ,0.15, 0.15];
-    this.checkboxOuterColorHover = [0.33 ,0.33, 0.33];
-    this.checkboxInnerColorHover = [0.18 ,0.18, 0.18];
-
-
-    this.radioButtonOuterColor = [0.3 ,0.3, 0.3];
-    this.radioButtonInnerColor = [0.15 ,0.15, 0.15];
-    this.radioButtonOuterColorHover = [0.33 ,0.33, 0.33];
-    this.radioButtonInnerColorHover = [0.18 ,0.18, 0.18];
-
-    //  the color of a separator.
-    this.separatorColor = [0.4, 0.4, 0.4];
-    // the height of a separator (height of "0") * this.separateHeightRatio
-    this.separateHeightRatio = 0.2;
 
     // position of the window.
     this.windowPosition = [20, 20];
@@ -620,33 +819,142 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.titleBarColor = [0.2, 0.4, 0.6];
 
 
+    /*
+    button settings
+     */
+
+    // the horizontal and vertical spacing between the button border and its text label.
+    this.buttonSpacing = 3;
+    // normal button color.
+    this.buttonColor = [0.35, 0.1, 0.1];
+    // button button color when mouse hover
+    this.hoverButtonColor = [0.40, 0.1, 0.1];
+    // button color when mouse click.
+    this.clickButtonColor = [0.50, 0.1, 0.1];
+
+    /*
+    slider settings
+     */
+
+    // the vertical space between the number(inside the slider) and the border of the slider box.
+    this.sliderVerticalSpacing = 4;
+    // the color of the slider background.
+    this.sliderBackgroundColor = [0.16, 0.16, 0.16];
+    // the color of the bar in the slider.
+    this.sliderFillColor = [0.0, 0.3, 0.6];
+    // the color of the slider background when mouse hover,
+    this.sliderBackgroundColorHover = [0.19, 0.19, 0.19];
+    // the color of the bar in the slider when mouse hover.
+    this.sliderFillColorHover = [0.0, 0.3, 0.70];
+    // the number of decimal digits that the slider value is displayed with.
+    this.sliderValueNumDecimalDigits = 2;
+
+    /*
+    dragger settings
+     */
+
+    // the horizontal spacing between the subdragger widgets in a dragger widget.
+    this.draggerWidgetHorizontalSpacing = 3;
+    // the vertical spacing between the top and bottom borders and the text in draggers.
+    this.draggerVerticalSpacing = 5;
+
+    // The colors of the three subdraggers in the rgbDragger widget.
+    // "Hover", refers to the color when the dragger is hovered.
+    this.draggerRgbRedColor = [0.3, 0.0, 0.0];
+    this.draggerRgbRedColorHover = [0.35, 0.0, 0.0];
+    this.draggerRgbGreenColor = [0.0, 0.3, 0.0];
+    this.draggerRgbGreenColorHover = [0.0, 0.35, 0.0];
+    this.draggerRgbBlueColor = [0.0, 0.0, 0.3];
+    this.draggerRgbBlueColorHover = [0.0, 0.0, 0.38];
+    //The colors of the subdraggers in the draggerFloat widgets.
+    // "Hover", refers to the color when the dragger is hovered.
+    this.draggerFloatColor = [0.30, 0.30, 0.30];
+    this.draggerFloatColorHover = [0.32, 0.32, 0.32];
+
+    /*
+    checkbox settings
+     */
 
 
-}
+    // the outer color is the color of the outer box of the checkbox,
+    // and the inner color is the color of the inner box
+    this.checkboxOuterColor = [0.3, 0.3, 0.3];
+    this.checkboxInnerColor = [0.15, 0.15, 0.15];
+    this.checkboxOuterColorHover = [0.33, 0.33, 0.33];
+    this.checkboxInnerColorHover = [0.18, 0.18, 0.18];
+    // size of inner box will be (height of "0")* checkBoxInnerSizeRatio
+    this.checkBoxInnerSizeRatio =  1.4;
+    // size of outer box will be (height of "0")* checkBoxOuterSizeRatio
+    this.checkBoxOuterSizeRatio =  2.0;
+
+
+    /*
+     radioButton settings
+     */
+
+
+    // the outer color is the color of the outer circle of the radioButton,
+    // and the inner color is the color of the inner circle
+    this.radioButtonOuterColor = [0.3, 0.3, 0.3];
+    this.radioButtonInnerColor = [0.15, 0.15, 0.15];
+    this.radioButtonOuterColorHover = [0.33, 0.33, 0.33];
+    this.radioButtonInnerColorHover = [0.18, 0.18, 0.18];
+    // in order to render the radio button, we must triangulate the circles into triangle segments
+    // this number is the number of triangle segments.
+    this.radioButtonCircleSegments = 9;
+
+    // radius of the inner circle will be (height of "0")* innerRadiusRatio
+    this.radioButtonInnerRadius =  0.6;
+    // radius of the outer circle will be (height of "0")* outerRadiusRatio
+    this.radioButtonOuterRadius =  1.0;
+
+
+    /*
+    separator settings.
+     */
+
+    //  the color of a separator.
+    this.separatorColor = [0.4, 0.4, 0.4];
+    // the height of a separator (height of "0") * this.separatorHeightRatio
+    this.separatorHeightRatio = 0.2;
+
+    /*
+    general settings
+     */
+
+    // Some widgets render a label in addition to themselves(such as the sliders and draggers)
+    // this value is the horizontal spacing between the label and the widget for those widgets.
+    this.widgetLabelHorizontalSpacing = 4;
+
+    // Some widgets will grow horizontally as the window size increases. They are grown to occupy this
+    // ratio of the total window width.
+    this.widgetHorizontalGrowRatio = 0.6;
+};
 
 GUI.prototype._getCharDesc = function (char) {
     return fontInfo.chars[char.charCodeAt(0) - 32];
-}
+};
 
 GUI.prototype._addIndex = function (index) {
     this.indexBuffer[this.indexBufferIndex++] = index;
-}
+};
 
 GUI.prototype._addPosition = function (position) {
     this.positionBuffer[this.positionBufferIndex++] = position[0];
     this.positionBuffer[this.positionBufferIndex++] = position[1];
-}
+};
 
 GUI.prototype._addColor = function (color) {
     this.colorBuffer[this.colorBufferIndex++] = color[0];
     this.colorBuffer[this.colorBufferIndex++] = color[1];
     this.colorBuffer[this.colorBufferIndex++] = color[2];
     this.colorBuffer[this.colorBufferIndex++] = color[3];
-}
+};
 
 GUI.prototype._addUv = function (uv) {
-    this.uvBuffer[this.uvBufferIndex++] = uv[0];this.uvBuffer[this.uvBufferIndex++] = uv[1];
-}
+    this.uvBuffer[this.uvBufferIndex++] = uv[0];
+    this.uvBuffer[this.uvBufferIndex++] = uv[1];
+};
 
 /*
  Get width and height of a text string.
@@ -672,7 +980,7 @@ GUI.prototype._getTextSizes = function (str) {
 
     }
 
-    return [ width, height];
+    return [width, height];
 }
 
 
@@ -682,14 +990,14 @@ GUI.prototype._getTextSizes = function (str) {
 GUI.prototype._text = function (position, str) {
 
     /*
-    Make sure to round the position to integer. Otherwise, anti-aliasing causes the text to get blurry,
-    it seems
+     Make sure to round the position to integer. Otherwise, anti-aliasing causes the text to get blurry,
+     it seems
      */
     var x = Math.round(position[0]);
     var y = Math.round(position[1]);
 
     /*
-    Width of a single pixel in the font atlas.
+     Width of a single pixel in the font atlas.
      */
     var ipw = 1.0 / 256;
     var iph = 1.0 / 256;
@@ -702,8 +1010,8 @@ GUI.prototype._text = function (position, str) {
         var cd = this._getCharDesc(ch);
 
         /*
-        We will render a single character as a quad.
-        First we gather all information needed to render the quad:
+         We will render a single character as a quad.
+         First we gather all information needed to render the quad:
          */
 
         var x0 = (x + cd.xoff) * this.textScale;
@@ -722,31 +1030,41 @@ GUI.prototype._text = function (position, str) {
 
 
         /*
-        Now we have all the information. Now render the quad as two triangles:
+         Now we have all the information. Now render the quad as two triangles:
          */
 
         var baseIndex = this.positionBufferIndex / 2;
 
         // top left
-        this._addPosition([x0, y0]);this._addColor(whiteColor);this._addUv([s0, t0]);
+        this._addPosition([x0, y0]);
+        this._addColor(whiteColor);
+        this._addUv([s0, t0]);
 
         // bottom left
-        this._addPosition([x0, y1]);this._addColor(whiteColor);this._addUv([s0, t1]);
+        this._addPosition([x0, y1]);
+        this._addColor(whiteColor);
+        this._addUv([s0, t1]);
 
         // top right
-        this._addPosition([x1, y0]);this._addColor(whiteColor);this._addUv([s1, t0]);
+        this._addPosition([x1, y0]);
+        this._addColor(whiteColor);
+        this._addUv([s1, t0]);
 
 
         // bottom right
-        this._addPosition([x1, y1]);this._addColor(whiteColor);this._addUv([s1, t1]);
+        this._addPosition([x1, y1]);
+        this._addColor(whiteColor);
+        this._addUv([s1, t1]);
 
         // triangle 1
-        this._addIndex(baseIndex + 0);this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);
+        this._addIndex(baseIndex + 0);
+        this._addIndex(baseIndex + 1);
+        this._addIndex(baseIndex + 2);
 
         // triangle 2
-        this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
-
-
+        this._addIndex(baseIndex + 3);
+        this._addIndex(baseIndex + 2);
+        this._addIndex(baseIndex + 1);
 
         // finally, advance the x-coord, in preparation of rendering the next character.
         x += (cd.xadvance) * this.textScale;
@@ -754,7 +1072,7 @@ GUI.prototype._text = function (position, str) {
 }
 
 /*
-Render text centered in a box with position `p`, width `s[0]`, height `[1]`,
+ Render text centered in a box with position `p`, width `s[0]`, height `[1]`,
  */
 GUI.prototype._textCenter = function (p, s, str) {
     var strSizes = this._getTextSizes(str);
@@ -762,22 +1080,24 @@ GUI.prototype._textCenter = function (p, s, str) {
     // we must round, otherwise the text may end up between pixels(say at 1.5, or 1.6, or something ),
     // and this makes it blurry
     var strPosition = [
-        Math.round(0.5 * (p[0] + (p[0]+s[0]) - strSizes[0] )),
-        Math.round(0.5 * (p[1] + (p[1]+s[1]) + strSizes[1] )),
+        Math.round(0.5 * (p[0] + (p[0] + s[0]) - strSizes[0] )),
+        Math.round(0.5 * (p[1] + (p[1] + s[1]) + strSizes[1] )),
     ];
 
     this._text(strPosition, str);
 }
 
 /*
-Add vertex that only has one color, and does not use a texture.
+ Add vertex that only has one color, and does not use a texture.
  */
 GUI.prototype._coloredVertex = function (position, color) {
     // at this uv-coordinate, the font atlas is entirely white.
     var whiteUv = [0.95, 0.95];
 
-    this._addPosition(position);this._addColor(color);this._addUv(whiteUv);
-}
+    this._addPosition(position);
+    this._addColor(color);
+    this._addUv(whiteUv);
+};
 
 /*
  Render a box.
@@ -789,20 +1109,17 @@ GUI.prototype._coloredVertex = function (position, color) {
 GUI.prototype._box = function (position, size, color, alpha) {
 
 
-    if(typeof alpha === 'undefined') {
+    if (typeof alpha === 'undefined') {
         alpha = 1.0; // default to 1.0
     }
 
     // top-left, bottom-left, top-right, bottom-right corners
     var tl = position;
-    var bl = [position[0]          , position[1] + size[1]];
-    var tr = [position[0] + size[0], position[1]          ];
+    var bl = [position[0], position[1] + size[1]];
+    var tr = [position[0] + size[0], position[1]];
     var br = [position[0] + size[0], position[1] + size[1]];
 
     var baseIndex = this.positionBufferIndex / 2;
-
-
-
 
     var c = [color[0], color[1], color[2], alpha];
 
@@ -820,21 +1137,24 @@ GUI.prototype._box = function (position, size, color, alpha) {
 
 
     // triangle 1
-    this._addIndex(baseIndex + 0);this._addIndex(baseIndex + 1);this._addIndex(baseIndex + 2);
+    this._addIndex(baseIndex + 0);
+    this._addIndex(baseIndex + 1);
+    this._addIndex(baseIndex + 2);
 
     // triangle 2
-    this._addIndex(baseIndex + 3);this._addIndex(baseIndex + 2);this._addIndex(baseIndex + 1);
+    this._addIndex(baseIndex + 3);
+    this._addIndex(baseIndex + 2);
+    this._addIndex(baseIndex + 1);
 
-}
+};
 
 GUI.prototype._unitCircle = function (position, theta, radius) {
     return [position[0] + radius * Math.cos(theta), position[1] + radius * Math.sin(theta)];
-}
-
+};
 
 /*
-Render a circle, where the top-left corner of the circle is `position`
-Where `segments` is how many triangle segments the triangle is rendered by.
+ Render a circle, where the top-left corner of the circle is `position`
+ Where `segments` is how many triangle segments the triangle is rendered with.
  */
 GUI.prototype._circle = function (position, sizes, color, segments) {
 
@@ -846,28 +1166,31 @@ GUI.prototype._circle = function (position, sizes, color, segments) {
 
     var baseIndex = this.positionBufferIndex / 2;
 
-    var c = [color[0],color[1],color[2],1.0];
-    // center vertex.
-    this._coloredVertex(centerPosition, c );
+    var c = [color[0], color[1], color[2], 1.0];
+
+    // add center vertex.
+    this._coloredVertex(centerPosition, c);
     var centerVertexIndex = baseIndex + 0;
 
 
-    var stepSize = (2*Math.PI) / segments;
+    var stepSize = (2 * Math.PI) / segments;
     var curIndex = baseIndex + 1;
-    for(var theta = 0; theta <= 2*Math.PI+0.1; theta+=stepSize, ++curIndex) {
+    for (var theta = 0; theta <= 2 * Math.PI + 0.1; theta += stepSize, ++curIndex) {
 
         // for first frame, we only create one vertex, and no triangles
-        if(theta ==0) {
+        if (theta == 0) {
             var p = this._unitCircle(centerPosition, theta, radius);
             this._coloredVertex(p, c);
         } else {
             var p = this._unitCircle(centerPosition, theta, radius);
             this._coloredVertex(p, c);
 
-            this._addIndex(curIndex+0);this._addIndex(curIndex-1);this._addIndex(centerVertexIndex);
+            this._addIndex(curIndex + 0);
+            this._addIndex(curIndex - 1);
+            this._addIndex(centerVertexIndex);
         }
     }
-}
+};
 
 function _inCircle(p, s, x) {
 
@@ -880,7 +1203,7 @@ function _inCircle(p, s, x) {
     var radius = s[0] * 0.5;
 
     // distance from `x` to circle center.
-    var dist = Math.sqrt( (x[0]-cp[0])*(x[0]-cp[0]) + (x[1]-cp[1])*(x[1]-cp[1]));
+    var dist = Math.sqrt((x[0] - cp[0]) * (x[0] - cp[0]) + (x[1] - cp[1]) * (x[1] - cp[1]));
 
     return (dist <= radius);
 }
@@ -905,18 +1228,18 @@ function _inBox(p, s, x) {
 
 
 /*
-Before adding a widget, move the window caret to the right of the previous widget if this.sameLineActive,
-else start a line.
-you should ALWAYS call this function before adding a new widget.
+ Before adding a widget, move the window caret to the right of the previous widget if this.sameLineActive,
+ ELSE start a line.
+ you should ALWAYS call this function before adding a new widget.
  */
-GUI.prototype._moveWindowCaret = function(){
+GUI.prototype._moveWindowCaret = function () {
 
-    if(this.prevWidgetSizes == null) {
+    if (this.prevWidgetSizes == null) {
         // we have not yet laid out the first widget. Do nothing.
         return;
     }
 
-    if(this.sameLineActive) {
+    if (this.sameLineActive) {
         this.windowCaret = [this.windowCaret[0] + this.widgetSpacing + this.prevWidgetSizes[0], this.windowCaret[1]];
     } else {
         this.windowCaret = [this.windowSpacing + this.windowPosition[0], this.windowCaret[1] + this.widgetSpacing + this.prevWidgetSizes[1]];
@@ -925,31 +1248,20 @@ GUI.prototype._moveWindowCaret = function(){
     // the user have to explicitly call sameLine() again if we he wants samLineActive again.
     this.sameLineActive = false;
 
-}
+};
 
-GUI.prototype.sameLine = function(){
-    this.sameLineActive = true;
-}
+GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorHover, width, position, minVal, maxVal) {
 
-GUI.prototype.sliderFloat = function (str, value, min, max) {
-    this._slider(str, value, min, max, false);
-}
-
-GUI.prototype.sliderInt = function (str, value, min, max) {
-    this._slider(str, value, min, max, true);
-}
-
-GUI.prototype._draggerFloat = function (
-    widgetId, labelStr, value, color, colorHover, width, position, minVal, maxVal) {
+    /*
+    DRAGGER IO
+     */
 
     var draggerPosition = position;
-
-
     var draggerSizes = [
         width,
-        this._getTextSizes("0")[1] + 2*this.draggerSpacing
+        this._getTextSizes("0")[1] + 2 * this.draggerVerticalSpacing
     ];
-    
+
     var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
     if (
         mouseCollision &&
@@ -959,7 +1271,7 @@ GUI.prototype._draggerFloat = function (
     }
 
     if (this.activeWidgetId == widgetId) {
-        value.val += 0.01*(this.io.mousePosition[0] - this.io.mousePositionPrev[0]);
+        value.val += 0.01 * (this.io.mousePosition[0] - this.io.mousePositionPrev[0]);
         value.val = clamp(value.val, minVal, maxVal);
 
         this.activeWidgetId = widgetId;
@@ -969,20 +1281,19 @@ GUI.prototype._draggerFloat = function (
     /*
      DRAGGER RENDERING
      */
-    
+
     var sliderValueStr = labelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
 
 
     /*
-    If either widget is active, OR we are hovering but not clicking,
-    switch to hover color.
+     If either widget is active, OR we are hovering but not clicking,
+     switch to hover color.
      */
     var isHover = (this.activeWidgetId == widgetId) || (mouseCollision && !this.io.mouseLeftDownCur  );
 
     this._box(
         draggerPosition,
         draggerSizes, isHover ? colorHover : color);
-
 
 
     var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
@@ -993,69 +1304,55 @@ GUI.prototype._draggerFloat = function (
 
     // return top right corner, and bottom right corner of the dragger.
     return {
-        topRight   :  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]  ],
-        bottomRight:  [draggerPosition[0] + draggerSizes[0], draggerPosition[1]+  draggerSizes[1]  ],
+        topRight: [draggerPosition[0] + draggerSizes[0], draggerPosition[1]],
+        bottomRight: [draggerPosition[0] + draggerSizes[0], draggerPosition[1] + draggerSizes[1]],
     };
-}
-
-
-
-
-GUI.prototype.draggerFloat3 = function (labelStr, value, minMaxValues, subLabels) {
-    this._draggerFloatN(labelStr, value, 3, minMaxValues, subLabels);
-}
-
-
-GUI.prototype.draggerRgb = function (labelStr, value) {
-    this._draggerFloatN(
-        labelStr, value, 3, [ [0,1] ], ["R:", "G:", "B:"],
-         [
-             [this.draggerRgbRedColor,this.draggerRgbRedColorHover ],
-             [this.draggerRgbGreenColor,this.draggerRgbGreenColorHover ],
-             [this.draggerRgbBlueColor,this.draggerRgbBlueColorHover ]
-         ]);
-}
+};
 
 /*
-sublabels,
-min max, for all n.
-hover color, for all three.
+ sublabels,
+ min max, for all n.
+ hover color, for all three.
  */
 GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLabels, colors) {
     this._moveWindowCaret();
 
-    if(!minMaxValues)
+    if (!minMaxValues)
         minMaxValues = [];
 
-    if(!subLabels)
+    if (!subLabels)
         subLabels = [];
 
-    if(!colors)
+    if (!colors)
         colors = [];
 
 
-    // if minMaxValues only contains a single min-max pair, then that pair becomes the value of the rest
+    // if minMaxValues is only a single min-max pair(a  n array on the form [min,max]),
+    // then that pair becomes the value of the rest
     // of the min-max pairs.
-    if(minMaxValues.length == 1) {
-        for(var i = 1; i < N; ++i) {
-            minMaxValues[i] =  minMaxValues[0];
+    if (minMaxValues.length == 2 &&  typeof minMaxValues[0][0] == "undefined" ) {
+        var defaultValue = [minMaxValues[0], minMaxValues[1]  ];
+        for (var i = 0; i < N; ++i) {
+            minMaxValues[i] = defaultValue;
         }
+
+
     }
 
 
     /*
-    Set default values.
+     Set default values of arguments
      */
-    for(var i = 0; i < N; ++i) {
-        if(!subLabels[i]) {
+    for (var i = 0; i < N; ++i) {
+        if (!subLabels[i]) {
             subLabels[i] = "";
         }
 
-        if(!minMaxValues[i]) {
+        if (!minMaxValues[i]) {
             minMaxValues[i] = [-1, 1];
         }
 
-        if(!colors[i]) {
+        if (!colors[i]) {
             colors[i] = [this.draggerFloatColor, this.draggerFloatColorHover];
 
         }
@@ -1063,32 +1360,30 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
 
     // width of a single subdragger.
     var draggerWidth =
-               (((this.windowSizes[0] - 2* this.windowSpacing)*(this.sliderWindowRatio)) - (N-1)*this.draggerWidgetSpacing) / (N);
+        (((this.windowSizes[0] - 2 * this.windowSpacing) * (this.widgetHorizontalGrowRatio)) - (N - 1) * this.draggerWidgetHorizontalSpacing) / (N);
 
     var nDraggerPosition = this.windowCaret;
-    var formerDraggerPosition = { topRight :  nDraggerPosition };
+    var formerDraggerPosition = {topRight: nDraggerPosition};
 
-    for(var iDragger = 0; iDragger < N; ++iDragger) {
-        var v = {val: value[iDragger] };
+    for (var iDragger = 0; iDragger < N; ++iDragger) {
+        var v = {val: value[iDragger]};
 
         // first dragger has no spacing in front.
         var hasFrontSpacing = (iDragger == 0) ? false : true;
 
-        var position =  [
-            formerDraggerPosition.topRight[0] + (hasFrontSpacing ? this.draggerWidgetSpacing : 0),
+        var position = [
+            formerDraggerPosition.topRight[0] + (hasFrontSpacing ? this.draggerWidgetHorizontalSpacing : 0),
             formerDraggerPosition.topRight[1]];
 
-
-        var draggerWidgetId = hashString(labelStr+ (iDragger+"") );
+        // make sure each subdragger has an unique widget-ID.
+        var draggerWidgetId = hashString(labelStr + (iDragger + ""));
 
         formerDraggerPosition = this._draggerFloat(draggerWidgetId, subLabels[iDragger], v,
             colors[iDragger][0],
-            colors[iDragger][1]  , draggerWidth,  position,  minMaxValues[iDragger][0] , minMaxValues[iDragger][1] );
+            colors[iDragger][1], draggerWidth, position, minMaxValues[iDragger][0], minMaxValues[iDragger][1]);
 
         // update value
         value[iDragger] = v.val;
-
-
     }
 
     // the total size of all the N draggers.
@@ -1096,16 +1391,16 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         formerDraggerPosition.bottomRight[0] -
         nDraggerPosition[0],
         formerDraggerPosition.bottomRight[1] -
-        nDraggerPosition[1]] ;
+        nDraggerPosition[1]];
 
     // finally, we place a label after all the draggers.
-    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.sliderLabelSpacing, nDraggerPosition[1]]
-    var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0],  draggerSizes[1]  ];
+    var draggerLabelPosition = [nDraggerPosition[0] + draggerSizes[0] + this.widgetLabelHorizontalSpacing, nDraggerPosition[1]]
+    var draggerLabelStrSizes = [this._getTextSizes(labelStr)[0], draggerSizes[1]];
     this._textCenter(draggerLabelPosition, draggerLabelStrSizes, labelStr);
 
     this.prevWidgetSizes = [
 
-        draggerSizes[0] + this.sliderLabelSpacing + draggerLabelStrSizes[0],
+        draggerSizes[0] + this.widgetLabelHorizontalSpacing + draggerLabelStrSizes[0],
         draggerSizes[1]];
 }
 
@@ -1114,7 +1409,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     this._moveWindowCaret();
 
     /*
-    SLIDER IO
+     SLIDER IO
      */
 
     var sliderPosition = this.windowCaret;
@@ -1124,8 +1419,8 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     // (since all digits have equal height in our font).
     // * also, we dynamically determine the slider width, based on the window width.
     var sliderSizes = [
-        (this.windowSizes[0] - 2* this.windowSpacing)*this.sliderWindowRatio,
-        this._getTextSizes("0")[1] + 2*this.sliderVerticalSpacing
+        (this.windowSizes[0] - 2 * this.windowSpacing) * this.widgetHorizontalGrowRatio,
+        this._getTextSizes("0")[1] + 2 * this.sliderVerticalSpacing
     ];
 
     var mouseCollision = _inBox(sliderPosition, sliderSizes, this.io.mousePosition);
@@ -1165,29 +1460,28 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     var isHover = (this.activeWidgetId == widgetId) || (mouseCollision && !this.io.mouseLeftDownCur  );
 
 
-
     /*
      SLIDER RENDERING
      */
 
     /*
-    Compute slider fill. Measures how much of the slider is filled.
-    In range [0,1]
+     Compute slider fill. Measures how much of the slider is filled.
+     In range [0,1]
      */
     var sliderFill = (value.val - min) / (max - min);
 
-    var sliderValueStr =  value.val.toFixed(this.sliderValueNumDecimalDigits);
+    var sliderValueStr = value.val.toFixed(this.sliderValueNumDecimalDigits);
 
     this._box(
         sliderPosition,
-        sliderSizes, isHover ? this.sliderBackgroundColorHover :  this.sliderBackgroundColor);
+        sliderSizes, isHover ? this.sliderBackgroundColorHover : this.sliderBackgroundColor);
 
     /*
-    Now fill the slider based on `sliderFill`
+     Now fill the slider based on `sliderFill`
      */
     this._box(
         sliderPosition,
-        [sliderSizes[0]*sliderFill,sliderSizes[1]  ],
+        [sliderSizes[0] * sliderFill, sliderSizes[1]],
         isHover ? this.sliderFillColorHover : this.sliderFillColor);
 
     var sliderValueStrSizes = this._getTextSizes(sliderValueStr);
@@ -1197,263 +1491,35 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
     this._textCenter(sliderPosition, sliderSizes, sliderValueStr);
 
     // now render slider label.
-    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.sliderLabelSpacing, sliderPosition[1]]
-    var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0],  sliderSizes[1]  ];
+    var sliderLabelPosition = [sliderPosition[0] + sliderSizes[0] + this.widgetLabelHorizontalSpacing, sliderPosition[1]]
+    var sliderLabelStrSizes = [this._getTextSizes(labelStr)[0], sliderSizes[1]];
     this._textCenter(sliderLabelPosition, sliderLabelStrSizes, labelStr);
 
-    this.prevWidgetSizes = [sliderSizes[0] + sliderLabelStrSizes[0],sliderSizes[1]  ];
-
-}
-
-/*
-If value.val == id, then that means this radio button is chosen.
- */
-GUI.prototype.radioButton= function (labelStr, value, id) {
-
-    this._moveWindowCaret();
-
-    /*
-     Radio button IO
-     */
-
-
-    var zeroHeight = this._getTextSizes("0")[1];
-
-    var innerRadius = (zeroHeight + 2 * 1) / 2;
-    var outerRadius = (zeroHeight + 2 * 4) / 2;
-
-    var radioButtonPosition = this.windowCaret;
-
-
-    var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
-
-    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
-
-
-     if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
-         value.val = id;
-     }
-
-    var isHover = mouseCollision;
-
-
-    /*
-     CHECKBOX RENDERING
-     */
-
-    this._circle(radioButtonPosition, radioButtonSizes,
-        isHover ? this.radioButtonOuterColorHover : this.radioButtonOuterColor, 16);
-
-
-    if (value.val == id) {
-        var p = radioButtonPosition;
-        var s = radioButtonSizes;
-        var innerCirclePosition = [
-            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerRadius * 2 )),
-            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerRadius * 2 )),
-        ];
-
-        this._circle(innerCirclePosition, [innerRadius * 2, innerRadius * 2],
-            isHover ? this.radioButtonInnerColorHover : this.radioButtonInnerColor, 16);
-    }
-
-    
-    // now render radio button label.
-    var labelPosition = [radioButtonPosition[0] + radioButtonSizes[0] + this.sliderLabelSpacing, radioButtonPosition[1]]
-    var labelStrSizes = [this._getTextSizes(labelStr)[0],  radioButtonSizes[1]  ];
-    this._textCenter(labelPosition, labelStrSizes, labelStr);
-
-    this.prevWidgetSizes = [radioButtonSizes[0] + labelStrSizes[0], radioButtonSizes[1]  ];
-}
-
-
-
-
-GUI.prototype.checkbox= function (labelStr, value) {
-
-    this._moveWindowCaret();
-
-    /*
-     CHECKBOX IO(if checkbox clicked, flip boolean value.)
-     */
-
-    // use height of zero to determine size of checkbox, to ensure that the textl label does become higher
-    // than the checkbox.
-    var zeroHeight = this._getTextSizes("0")[1];
-
-    var innerSize = zeroHeight + 2*2;
-    var outerSize = zeroHeight + 2*4;
-
-    var checkboxPosition = this.windowCaret;
-    var checkboxSizes = [outerSize, outerSize];
-
-    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
-
-    if(this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
-        value.val = !value.val;
-    }
-
-    var isHover = mouseCollision;
-
-    /*
-     CHECKBOX RENDERING
-     */
-
-    // render outer box.
-    this._box(
-        checkboxPosition,
-        checkboxSizes, isHover ?  this.checkboxOuterColorHover :  this.checkboxOuterColor);
-
-
-    // now render a centered inner box, that shows whether the checkbox is true, or false.
-
-    if(value.val) {
-        var p = checkboxPosition;
-        var s = checkboxSizes;
-        var innerboxPosition = [
-            Math.round(0.5 * (p[0] + (p[0] + s[0]) - innerSize )),
-            Math.round(0.5 * (p[1] + (p[1] + s[1]) - innerSize )),
-        ];
-
-        this._box(
-            innerboxPosition,
-            [innerSize, innerSize], isHover ? this.checkboxInnerColorHover : this.checkboxInnerColor);
-    }
-
-    // now render checkbox label.
-    var labelPosition = [checkboxPosition[0] + checkboxSizes[0] + this.sliderLabelSpacing, checkboxPosition[1]]
-    var labelStrSizes = [this._getTextSizes(labelStr)[0],  checkboxSizes[1]  ];
-    this._textCenter(labelPosition, labelStrSizes, labelStr);
-
-    this.prevWidgetSizes = [checkboxSizes[0] + labelStrSizes[0],checkboxSizes[1]  ];
-}
-
-
-GUI.prototype.button = function (str) {
-
-    this._moveWindowCaret();
-
-    var widgetId = hashString(str);
-
-    /*
-    BUTTON RENDERING
-     */
-
-    var buttonPosition = this.windowCaret;
-
-    var textSizes = this._getTextSizes(str);
-
-    // button size is text size, plus the spacing around the text.
-    var buttonSizes = [
-        textSizes[0] + this.buttonSpacing * 2,
-        textSizes[1] + this.buttonSpacing * 2
-    ];
-
-    var color;
-    var isButtonClick = false;
-
-    // we can only hover or click, when are not interacting with some other widget.
-    if( (this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
-
-        if(this.io.mouseLeftDownPrev  && !this.io.mouseLeftDownCur ) {
-
-            isButtonClick = true;
-            color = this.clickButtonColor;
-        } else if(this.io.mouseLeftDownCur ) {
-
-            color = this.clickButtonColor;
-            this.activeWidgetId = widgetId;
-        } else {
-            color = this.hoverButtonColor;
-        }
-
-
-    } else {
-        color =  this.buttonColor
-    }
-
-    this._box(
-        buttonPosition,
-        buttonSizes, color)
-
-    // Render button text.
-    this._text([buttonPosition[0] + this.buttonSpacing,
-        buttonPosition[1] + buttonSizes[1] - this.buttonSpacing], str);
-
-
-
-    // move down window caret.
-
-    this.prevWidgetSizes =(buttonSizes);
-
-
-    /*
-    BUTTON IO
-    If button is pressed, return true;
-    Otherwise, return false.
-     */
-
-
-    if(isButtonClick){
-         return true; // button press!
-    }
-
-    return false;
-}
-
-
-GUI.prototype.separator = function(){
-
-    this._moveWindowCaret();
-
-    var separatorPosition = this.windowCaret;
-    var separatorSizes = [
-        this.windowSizes[0] - 2* this.windowSpacing,
-        this._getTextSizes("0")[1]*0.2 ];
-
-    this._box(separatorPosition, separatorSizes, [0.4, 0.4, 0.4] );
-
-    this.prevWidgetSizes =(separatorSizes);
-}
-
-
-GUI.prototype.textLine = function (str) {
-
-    this._moveWindowCaret();
-
-    var textLinePosition = this.windowCaret;
-
-    var textSizes = this._getTextSizes(str);
-    
-    // Render button text.
-    this._textCenter(textLinePosition, textSizes, str);
-
-    this.prevWidgetSizes = textSizes;
+    this.prevWidgetSizes = [sliderSizes[0] + sliderLabelStrSizes[0], sliderSizes[1]];
 
 }
 
 
 GUI.prototype._window = function () {
 
-    var widgetId = hashString( this.windowTitle);
+    var widgetId = hashString(this.windowTitle);
 
     /*
-    WINDOW IO(move window when dragging the title-bar using the left mouse button)
+     WINDOW IO(move window when dragging the title-bar using the left mouse button)
      */
 
     var titleBarPosition = this.windowPosition;
-    var titleBarSizes =  [this.windowSizes[0],  this.titleBarHeight];
+    var titleBarSizes = [this.windowSizes[0], this.titleBarHeight];
 
     if (
         _inBox(titleBarPosition, titleBarSizes, this.io.mousePosition) &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
-        // activate window when clicked.
         this.activeWidgetId = widgetId;
     }
 
     if (this.activeWidgetId == widgetId) {
 
-        if(_inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
+        if (_inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
             // if mouse in title bar, just use the mouse position delta to adjust the window pos.
 
             this.windowPosition = [
@@ -1470,8 +1536,8 @@ GUI.prototype._window = function () {
         } else {
 
             /*
-            If the window cannot keep up with the mouse, we must use the relative mouse position to approximate
-            the change in (x,y)
+             If the window cannot keep up with the mouse, we must use the relative mouse position to approximate
+             the change in (x,y)
              */
 
             this.windowPosition = [
@@ -1493,13 +1559,13 @@ GUI.prototype._window = function () {
 
     // draw title bar text
     this._textCenter(
-        [this.windowPosition[0]+this.titleBarVerticalSpacing, this.windowPosition[1]],
-        [this._getTextSizes(this.windowTitle)[0],   this.titleBarHeight ],
+        [this.windowPosition[0] + this.titleBarVerticalSpacing, this.windowPosition[1]],
+        [this._getTextSizes(this.windowTitle)[0], this.titleBarHeight],
         this.windowTitle);
 
     // draw the actual window.
     this._box([this.windowPosition[0], this.windowPosition[1] + this.titleBarHeight], this.windowSizes,
-       this.windowColor, this.windowAlpha);
+        this.windowColor, this.windowAlpha);
 
     // setup the window-caret. The window-caret is where we will place the next widget in the window.
     this.windowCaret = [
@@ -1512,41 +1578,10 @@ GUI.prototype._window = function () {
      Determine whether the mouse is inside the window. We need this in some places.
      */
     this.mouseInWindow = _inBox(titleBarPosition,
-        [
-            this.windowSizes[0],
-            this.titleBarHeight + this.windowSizes[1]
-        ], this.io.mousePosition);
+        [this.windowSizes[0], this.titleBarHeight + this.windowSizes[1]],
+        this.io.mousePosition);
 }
 
-/*
-Mouse has focus EITHER when the mouse is inside the window, OR
-it is outside the window, but is interacting with a widget.
- */
-GUI.prototype.hasMouseFocus = function() {
-    return this.mouseInWindow || this.activeWidgetId != null;
-}
-
-
-GUI.prototype.begin = function (io, windowTitle) {
-
-    this.windowTitle = windowTitle;
-
-    this.indexBuffer = [];
-    this.positionBuffer = [];
-    this.colorBuffer = [];
-    this.uvBuffer = [];
-
-    this.indexBufferIndex = 0;
-    this.positionBufferIndex = 0;
-    this.colorBufferIndex = 0;
-    this.uvBufferIndex = 0;
-
-    this.io = io;
-
-    // render window.
-    this._window();
-
-}
 
 GUI.prototype._restoreGLState = function (gl) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lastElementArrayBuffer);
@@ -1554,8 +1589,8 @@ GUI.prototype._restoreGLState = function (gl) {
     gl.useProgram(this.lastProgram);
     gl.bindTexture(gl.TEXTURE_2D, this.lastTexture);
 
-    if(this.lastEnableDepthTest) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
-    if(this.lastEnableBlend) gl.enable(gl.BLEND); else gl.disable(gl.BLEND);
+    if (this.lastEnableDepthTest) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
+    if (this.lastEnableBlend) gl.enable(gl.BLEND); else gl.disable(gl.BLEND);
 }
 
 
@@ -1569,87 +1604,10 @@ GUI.prototype._backupGLState = function (gl) {
     this.lastEnableBlend = gl.isEnabled(gl.BLEND);
 
     /*
-    TODO: figure out how to back up `blendFunc`.
+     TODO: figure out how to back up `blendFunc`.
      */
 
 }
-
-GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
-
-    /*
-    If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
-    when calling vertexAttribPointer, which means that we would effectively corrupt the user data!
-     */
-    var VAO_ext = gl.getExtension('OES_vertex_array_object');
-    if(VAO_ext)
-        VAO_ext.bindVertexArrayOES(null);
-
-    /*
-    We are changing some GL states when rendering the GUI. So before rendering we backup these states,
-    and after rendering we restore these states. This is so that the end-user does not involuntarily have his
-    GL-states messed with.
-     */
-    this._backupGLState(gl);
-
-
-    this.positionBufferObject.update(this.positionBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aPosition.location);
-    gl.vertexAttribPointer(this.shader.attributes.aPosition.location, 2, gl.FLOAT, false, 0, 0);
-    this.positionBufferObject.unbind();
-
-
-    this.colorBufferObject.update(this.colorBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aColor.location);
-    gl.vertexAttribPointer(this.shader.attributes.aColor.location, 4, gl.FLOAT, false, 0, 0);
-    this.colorBufferObject.unbind();
-
-    this.uvBufferObject.update(this.uvBuffer);
-    gl.enableVertexAttribArray(this.shader.attributes.aUv.location);
-    gl.vertexAttribPointer(this.shader.attributes.aUv.location, 2, gl.FLOAT, false, 0, 0);
-    this.uvBufferObject.unbind();
-
-    this.indexBufferObject.update(this.indexBuffer);
-
-
-    /*
-    Setup matrices.
-    */
-    var projection = mat4.create()
-    mat4.ortho(projection, 0, canvasWidth, canvasHeight, 0, -1.0, 1.0)
-
-    this.shader.bind()
-
-    this.shader.uniforms.uProj = projection;
-    this.shader.uniforms.uFontAtlas = this.fontAtlasTexture.bind()
-
-    gl.disable(gl.DEPTH_TEST) // no depth testing; we handle this by manually placing out
-    // widgets in the order we wish them to be rendered.
-
-
-    // for text rendering, enable alpha blending.
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-
-    gl.drawElements(gl.TRIANGLES, (this.indexBufferIndex), gl.UNSIGNED_SHORT, 0);
-
-
-    gl.disable(gl.BLEND)
-
-
-    /*
-    Make sure to always reset the active widget id, if mouse is released.
-    This makes sure that every widget does not explicitly have to reset this value
-    by themselves, which is a bit error-prone.
-     */
-    if(this.activeWidgetId != null && this.io.mouseLeftDownCur == false ) {
-        this.activeWidgetId = null;
-    }
-
-
-   this._restoreGLState(gl);
-
-}
-
 
 module.exports = GUI;
 
