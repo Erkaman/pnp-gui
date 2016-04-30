@@ -586,5 +586,50 @@ TODO
 
 ## API
 
+Note that this section should be treated as a quick reference, and if you want more details, you should read the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
 
-2500x2500
+
+### `var gui = new require("pnp-gui")(gl);`
+
+create the GUI.
+
+* `gl` the WebGL context
+
+
+### `gui.sameLine()`
+
+### `gui.sliderFloat(labelStr, value, min, max)`
+
+### `gui.sliderInt(labelStr, value, min, max)`
+
+### `gui.draggerFloat4(labelStr, value, minMaxValues, subLabels)`
+
+### `gui.draggerFloat3(labelStr, value, minMaxValues, subLabels)`
+
+### `gui.draggerFloat2(labelStr, value, minMaxValues, subLabels)`
+
+### `gui.draggerFloat1(labelStr, value, minMaxValues, subLabels)`
+
+### `gui.draggerRgb(labelStr, value)`
+
+### `gui.radioButton(labelStr, value, id)`
+
+### `gui.checkBox(labelStr, value)`
+
+### `gui.button(str)`
+
+### `gui.separator()`
+
+### `gui.textLine(str)`
+
+### `gui.begin(io, windowTitle)`
+
+### `gui.end(gl, canvasWidth, canvasHeight)`
+
+### `gui.hasMouseFocus()`
+
+
+
+
+
+
