@@ -2,7 +2,7 @@
 
 pnp-gui(plug n' play GUI) is a WebGL gui toolkit whose main goal is to be easy to use, bloat-free, and be easy to
 integrate into any project. Impatient people probably want a demo right away,
-and [here](https://github.com/Erkaman/gl-simple-gui#demo) it is.
+and [here](https://github.com/Erkaman/pnp-gui#demo) it is.
 
 pnp-gui takes much inspiration from the fantastic [imgui](https://github.com/ocornut/imgui)
 project. Like imgui, it provides an Immediate Mode GUI toolkit. Also like imgui,
@@ -31,7 +31,7 @@ purposes..
 ## Demo
 
 A demo is given at this link:
-http://erkaman.github.io/gl-simple-gui/
+http://erkaman.github.io/pnp-gui/
 
 I should look like this:
 
@@ -107,7 +107,7 @@ uniform mat4 uView;
 void main() {
   vNormal = aNormal;
   vPosition = aPosition;
-  
+
   gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }
 `
@@ -135,7 +135,7 @@ void main() {
     vec3 ambient = uAmbientLight * uDiffuseColor;
     vec3 diffuse = uDiffuseColor * uLightColor * dot(n, l) ;
     vec3 specular = pow(clamp(dot(normalize(l+v),n),0.0,1.0)  , uSpecularPower) * vec3(1.0,1.0,1.0);
-    
+
     gl_FragColor = vec4(ambient + diffuse + specular*uHasSpecular, 1.0);
 }
 `
@@ -255,7 +255,7 @@ shell.on("gl-render", function (t) {
     if (gui.button("Randomize")) {
         demo1Randomize();
     }
-    
+
     gui.separator();
 
     gui.textLine("Miscellaneous");
@@ -581,7 +581,7 @@ there are no objects that are used to store the widgets of the GUI. Instead the
 GUI is being created on the fly every single frame. While this seem may unnatural
 to people who have not used such a GUI before, this kind of design actually results in
 a GUI that is very intuitive to use for programmers. If you wish to see this in action, please
-see the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
+see the [tutorial](https://github.com/Erkaman/pnp-gui#tutorial)
 
 <b>Does pnp-gui support text input?</b>
 
@@ -613,7 +613,7 @@ Not yet supported.
 
 ## API
 
-Note that this section should be treated as a quick reference, and if you want more details, you should read the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
+Note that this section should be treated as a quick reference, and if you want more details, you should read the [tutorial](https://github.com/Erkaman/pnp-gui#tutorial)
 
 
 ### `var gui = new require("pnp-gui")(gl);`
@@ -695,7 +695,7 @@ Basically a specialized version of `draggerFloat3` that allows you to manipulate
 
 ### `gui.radioButton(labelStr, value, id)`
 
-Places out a single radio button. For more detailed usage, see the [tutorial](https://github.com/Erkaman/gl-simple-gui#tutorial)
+Places out a single radio button. For more detailed usage, see the [tutorial](https://github.com/Erkaman/pnp-gui#tutorial)
 
 * `labelStr` The right label of the radio button.
 * `value`. The value manipulated by this widget. Should be on the form `{val: v}`.
