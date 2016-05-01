@@ -123,7 +123,7 @@ GUI.prototype.radioButton = function (labelStr, value, id) {
 
     var radioButtonSizes = [outerRadius * 2, outerRadius * 2];
 
-    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePosition);
+    var mouseCollision = _inCircle(radioButtonPosition, radioButtonSizes, this.io.mousePositionCur);
 
 
     if (this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
@@ -182,7 +182,7 @@ GUI.prototype.checkbox = function (labelStr, value) {
     var checkboxPosition = this.windowCaret;
     var checkboxSizes = [outerSize, outerSize];
 
-    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(checkboxPosition, checkboxSizes, this.io.mousePositionCur);
 
     if (this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false && mouseCollision) {
         value.val = !value.val;
@@ -248,7 +248,7 @@ GUI.prototype.button = function (str) {
     var isButtonClick = false;
 
     // we can only hover or click, when are not interacting with some other widget.
-    if ((this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePosition)) {
+    if ((this.activeWidgetId == null || this.activeWidgetId == widgetId ) && _inBox(buttonPosition, buttonSizes, this.io.mousePositionCur)) {
 
         if (this.io.mouseLeftDownPrev && !this.io.mouseLeftDownCur) {
 
@@ -901,7 +901,7 @@ GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorH
         this._getTextSizes("0")[1] + 2 * this.draggerVerticalSpacing
     ];
 
-    var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(draggerPosition, draggerSizes, this.io.mousePositionCur);
     if (
         mouseCollision &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
@@ -910,7 +910,7 @@ GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorH
     }
 
     if (this.activeWidgetId == widgetId) {
-        value.val += 0.01 * (this.io.mousePosition[0] - this.io.mousePositionPrev[0]);
+        value.val += 0.01 * (this.io.mousePositionCur[0] - this.io.mousePositionPrev[0]);
         value.val = clamp(value.val, minVal, maxVal);
 
         this.activeWidgetId = widgetId;
@@ -1062,7 +1062,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
         this._getTextSizes("0")[1] + 2 * this.sliderVerticalSpacing
     ];
 
-    var mouseCollision = _inBox(sliderPosition, sliderSizes, this.io.mousePosition);
+    var mouseCollision = _inBox(sliderPosition, sliderSizes, this.io.mousePositionCur);
 
     if (
         mouseCollision &&
@@ -1081,7 +1081,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
         /*
          Values larger than xMin and xMax should not overflow or underflow the slider.
          */
-        var mouseX = clamp(this.io.mousePosition[0], xMin, xMax);
+        var mouseX = clamp(this.io.mousePositionCur[0], xMin, xMax);
 
         value.val = (max - min) * ((mouseX - xMin) / (xMax - xMin)) + min;
 
@@ -1151,25 +1151,25 @@ GUI.prototype._window = function () {
     var titleBarSizes = [this.windowSizes[0], this.titleBarHeight];
 
     if (
-        _inBox(titleBarPosition, titleBarSizes, this.io.mousePosition) &&
+        _inBox(titleBarPosition, titleBarSizes, this.io.mousePositionCur) &&
         this.io.mouseLeftDownCur == true && this.io.mouseLeftDownPrev == false) {
         this.activeWidgetId = widgetId;
     }
 
     if (this.activeWidgetId == widgetId) {
 
-        if (_inBox(titleBarPosition, titleBarSizes, this.io.mousePosition)) {
+        if (_inBox(titleBarPosition, titleBarSizes, this.io.mousePositionCur)) {
             // if mouse in title bar, just use the mouse position delta to adjust the window pos.
 
             this.windowPosition = [
-                this.windowPosition[0] + (this.io.mousePosition[0] - this.io.mousePositionPrev[0]),
-                this.windowPosition[1] + (this.io.mousePosition[1] - this.io.mousePositionPrev[1])
+                this.windowPosition[0] + (this.io.mousePositionCur[0] - this.io.mousePositionPrev[0]),
+                this.windowPosition[1] + (this.io.mousePositionCur[1] - this.io.mousePositionPrev[1])
             ];
 
             // the mouse position relative to the top-left corner of the window.
             this.relativeMousePosition = [
-                (this.windowPosition[0] - this.io.mousePosition[0]),
-                (this.windowPosition[1] - this.io.mousePosition[1])
+                (this.windowPosition[0] - this.io.mousePositionCur[0]),
+                (this.windowPosition[1] - this.io.mousePositionCur[1])
             ];
 
         } else {
@@ -1180,8 +1180,8 @@ GUI.prototype._window = function () {
              */
 
             this.windowPosition = [
-                this.relativeMousePosition[0] + (this.io.mousePosition[0]),
-                this.relativeMousePosition[1] + (this.io.mousePosition[1])
+                this.relativeMousePosition[0] + (this.io.mousePositionCur[0]),
+                this.relativeMousePosition[1] + (this.io.mousePositionCur[1])
             ];
         }
 
@@ -1218,7 +1218,7 @@ GUI.prototype._window = function () {
      */
     this.mouseInWindow = _inBox(titleBarPosition,
         [this.windowSizes[0], this.titleBarHeight + this.windowSizes[1]],
-        this.io.mousePosition);
+        this.io.mousePositionCur);
 }
 
 
