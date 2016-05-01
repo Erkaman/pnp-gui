@@ -1,6 +1,6 @@
 {
   "name": "pnp-gui",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Immediate Mode WebGL GUI that aims to be easy to use and intergrate into any project.",
   "main": "index.js",
   "scripts": {
