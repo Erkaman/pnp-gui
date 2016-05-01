@@ -26,7 +26,10 @@ creating beautiful interfaces that can be presented to the end user. You can
 tweak a couple of colors and spacing constants here and there, but there is
 no support at all for skinning the GUI. Again, we empathize that the toolkit
 is mainly meant to be used by programmers who want a simple GUI for debugging
-purposes..
+purposes.
+
+[![NPM](https://nodei.co/npm/pnp-gui.png)](https://www.npmjs.com/package/pnp-gui)
+
 
 ## Demo
 
