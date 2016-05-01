@@ -323,6 +323,31 @@ GUI.prototype.textLine = function (str) {
 
 GUI.prototype.begin = function (io, windowTitle) {
 
+
+    // sanity checking.
+    if(typeof io == 'undefined') {
+        throw new Error("argument 'io' missing ");
+    } else {
+
+        if(typeof io.mousePositionCur == 'undefined') {
+            throw new Error("property 'io.mousePositionCur' missing ");
+        }
+        if(typeof io.mousePositionPrev == 'undefined') {
+            throw new Error("property 'io.mousePositionPrev' missing ");
+        }
+        if(typeof io.mouseLeftDownCur == 'undefined') {
+            throw new Error("property 'io.mouseLeftDownCur' missing ");
+        }
+        if(typeof io.mouseLeftDownPrev == 'undefined') {
+            throw new Error("property 'io.mouseLeftDownPrev' missing ");
+        }
+    }
+
+    // default value.
+    if(typeof windowTitle == 'undefined') {
+        windowTitle = "Window";
+    }
+
     this.windowTitle = windowTitle;
 
     /*
@@ -346,6 +371,17 @@ GUI.prototype.begin = function (io, windowTitle) {
 
 
 GUI.prototype.end = function (gl, canvasWidth, canvasHeight) {
+
+    if(typeof gl == 'undefined') {
+        throw new Error("argument 'gl' missing ");
+    }
+    if(!(typeof canvasWidth == 'number')) {
+        throw new Error("argument 'canvasWidth' must be a number ");
+    }
+    if(!(typeof canvasHeight == 'number')) {
+        throw new Error("argument 'canvasHeight' must be a number ");
+    }
+
 
     /*
      If a VAO is already bound, we need to unbound it. Otherwise, we will write into a VAO created by the user of the library
