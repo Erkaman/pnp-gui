@@ -48,6 +48,8 @@ window by dragging and dropping.
 
 And the source code of the demo can be found at `example/index.js`
 
+See also [here](https://github.com/Erkaman/glsl-godrays#readme) for an example of an actual application using pnp-gui
+
 ## Tutorial
 
 In this section, we give a tutorial that demonstrates how easy it is to use
