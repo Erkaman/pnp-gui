@@ -1145,7 +1145,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
      */
     var sliderFill = (value.val - min) / (max - min);
 
-    var sliderValueStr = value.val.toFixed(this.sliderValueNumDecimalDigits);
+    var sliderValueStr = value.val.toFixed(doRounding ? 0 : this.sliderValueNumDecimalDigits);
 
     this._box(
         sliderPosition,
