@@ -231,7 +231,7 @@ shell.on("gl-render", function (t) {
         mouseLeftDownCur: pressed,
         mouseLeftDownPrev: mouseLeftDownPrev,
 
-        mousePosition: shell.mouse,
+        mousePositionCur: shell.mouse,
         mousePositionPrev: shell.prevMouse
     };
     mouseLeftDownPrev = pressed;
