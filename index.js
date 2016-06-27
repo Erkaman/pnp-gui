@@ -64,12 +64,17 @@ GUI.prototype.sameLine = function () {
     this.sameLineActive = true;
 };
 
-GUI.prototype.sliderFloat = function (str, value, min, max) {
-    this._slider(str, value, min, max, false);
+GUI.prototype.sliderFloat = function (str, value, min, max, numDecimalDigits) {
+
+    if(typeof numDecimalDigits === 'undefined') {
+        numDecimalDigits = 2; // default value
+    }
+
+    this._slider(str, value, min, max, false, numDecimalDigits);
 };
 
 GUI.prototype.sliderInt = function (str, value, min, max) {
-    this._slider(str, value, min, max, true);
+    this._slider(str, value, min, max, true, 0);
 };
 
 GUI.prototype.draggerFloat4 = function (labelStr, value, minMaxValues, subLabels) {
@@ -521,8 +526,6 @@ GUI.prototype._setupDefaultSettings = function (char) {
     this.sliderBackgroundColorHover = [0.19, 0.19, 0.19];
     // the color of the bar in the slider when mouse hover.
     this.sliderFillColorHover = [0.0, 0.3, 0.70];
-    // the number of decimal digits that the slider value is displayed with.
-    this.sliderValueNumDecimalDigits = 2;
 
     /*
     dragger settings
@@ -956,8 +959,8 @@ GUI.prototype._draggerFloat = function (widgetId, labelStr, value, color, colorH
     /*
      DRAGGER RENDERING
      */
-
-    var sliderValueStr = labelStr + value.val.toFixed(this.sliderValueNumDecimalDigits);
+    var sliderValueNumDecimalDigits = 2; // hardcode this value for now.
+    var sliderValueStr = labelStr + value.val.toFixed(sliderValueNumDecimalDigits);
 
 
     /*
@@ -1079,7 +1082,7 @@ GUI.prototype._draggerFloatN = function (labelStr, value, N, minMaxValues, subLa
         draggerSizes[1]];
 }
 
-GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
+GUI.prototype._slider = function (labelStr, value, min, max, doRounding, numDecimalDigits) {
 
     this._moveWindowCaret();
 
@@ -1145,7 +1148,7 @@ GUI.prototype._slider = function (labelStr, value, min, max, doRounding) {
      */
     var sliderFill = (value.val - min) / (max - min);
 
-    var sliderValueStr = value.val.toFixed(doRounding ? 0 : this.sliderValueNumDecimalDigits);
+    var sliderValueStr = value.val.toFixed(doRounding ? 0 : numDecimalDigits);
 
     this._box(
         sliderPosition,

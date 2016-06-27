@@ -665,7 +665,7 @@ Places a button. Returns `true` if the button is clicked, else `false`
 
 The next widget is placed on the same line as the previous widget, if this method is called between them.
 
-### `gui.sliderFloat(labelStr, value, min, max)`
+### `gui.sliderFloat(labelStr, value, min, max, numDecimalDigits)`
 
 A slider that can be used to set a floating point value.
 
@@ -673,6 +673,7 @@ A slider that can be used to set a floating point value.
 * `value` the value manipulated by this widget. Should be on the form `{val: v}`
 * `min` the minimum value of the slider.
 * `max` the maximum value of the slider.
+* `numDecimalDigits` the number of decimal digits to display the value in the slider with.
 
 ### `gui.sliderInt(labelStr, value, min, max)`
 

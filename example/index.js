@@ -280,7 +280,7 @@ shell.on("gl-render", function (t) {
 
         gui.checkbox("Has Specular Lighting", demo1HasSpecular);
         if (demo1HasSpecular.val)
-            gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40);
+            gui.sliderFloat("Specular Power", demo1SpecularPower, 0, 40, 3);
 
         gui.draggerFloat3("Light Direction", demo1SunDir, [-2, +2], ["X:", "Y:", "Z:"]);
 
